@@ -60,8 +60,9 @@ export default function FileUpload({
       const result = await onFileUpload(file);
       setUploadedUrl(result.fileUrl);
       setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to upload file');
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to upload file';
+      setError(errorMessage);
       console.error('Upload error:', err);
     } finally {
       setUploading(false);

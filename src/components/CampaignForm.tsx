@@ -56,7 +56,7 @@ interface CampaignFormData {
   iva: number;
 }
 
-export default function CampaignForm({ adminConfig, mode, initialData, onSuccess, onCancel }: CampaignFormProps) {
+export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }: CampaignFormProps) {
   const [loading, setLoading] = useState(false);
   const [loadingLeasings, setLoadingLeasings] = useState(true);
   const [error, setError] = useState<string>('');
@@ -140,7 +140,7 @@ export default function CampaignForm({ adminConfig, mode, initialData, onSuccess
       setUserError('');
       const searchResults = await api.searchUsers(searchTerm);
       setUsers(searchResults);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('User search error:', err);
       setUserError('Failed to search users');
       setUsers([]);
@@ -208,8 +208,9 @@ export default function CampaignForm({ adminConfig, mode, initialData, onSuccess
 
       const result = await api.createCampaign(tokenizeAsset);
       onSuccess(result);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create campaign');
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to create campaign';
+      setError(errorMessage);
       console.error('Campaign creation error:', err);
     } finally {
       setLoading(false);
@@ -361,7 +362,7 @@ export default function CampaignForm({ adminConfig, mode, initialData, onSuccess
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
             <p className="text-sm text-blue-800">
               <strong>Note:</strong> This section defines the agreement between the selected leasing asset and the customer (lessee) 
-              who will acquire it and make monthly payments. Enter the customer's user ID below.
+              who will acquire it and make monthly payments. Enter the customer&apos;s user ID below.
             </p>
           </div>
           

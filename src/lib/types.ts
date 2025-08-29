@@ -66,7 +66,9 @@ export interface CreateLeasingDto {
   details?: AssetDetailDto[];
 }
 
-export interface UpdateLeasingDto extends CreateLeasingDto {}
+export interface UpdateLeasingDto extends CreateLeasingDto {
+  id?: string;
+}
 
 export interface LeasingDto extends CreateLeasingDto {
   id: string;
@@ -120,8 +122,7 @@ export interface CreateUserLeasingAgreementDto {
 }
 
 export interface AssetDetailDto {
-  // Add properties as needed
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ContactDto {

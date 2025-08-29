@@ -85,8 +85,9 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       }
 
       onSuccess(result);
-    } catch (err: any) {
-      setError(err.response?.data?.error || `Failed to ${mode} leasing`);
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || `Failed to ${mode} leasing`;
+      setError(errorMessage);
       console.error(`${mode} error:`, err);
     } finally {
       setLoading(false);

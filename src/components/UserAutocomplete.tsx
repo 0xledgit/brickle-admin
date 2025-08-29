@@ -175,6 +175,7 @@ export default function UserAutocomplete({
                 {/* Profile picture or placeholder */}
                 <div className="flex-shrink-0">
                   {user.profilePictureUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={user.profilePictureUrl}
                       alt={getUserDisplayText(user)}
