@@ -158,3 +158,45 @@ export interface AdminConfig {
   baseUrl: string;
   adminUserId: string;
 }
+
+// Payment types
+export interface PermitSignature {
+  v: number;
+  r: string;
+  s: string;
+}
+
+export interface CreatePaymentDto {
+  userLeasingAgreementId: string;
+  paymentAmount: string;
+  deadline: number;
+  permitSignature: PermitSignature;
+}
+
+export interface UserLeasingAgreementDto {
+  id: string;
+  userId: string;
+  leasingId: string;
+  assetValue: number;
+  usefulLife: number;
+  termTime: number;
+  paymentTerm: string;
+  agreementType: number;
+  currency: string;
+  contractDetails: string;
+  startDate: string;
+  endDate: string;
+  installmentRate: number;
+  residualValue: number;
+  managementFee: number;
+  tokensPurchased: number;
+  leasingCoreAddress: string;
+  insurancePercentage: number;
+  ibrRate: number;
+  riskLevel: number;
+  riskRate: number;
+  iva: number;
+  createdAt: string;
+  updatedAt: string;
+  leasing?: LeasingDto;
+}
