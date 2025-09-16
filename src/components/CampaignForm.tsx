@@ -32,7 +32,7 @@ interface CampaignFormData {
   status: number;
   baseToken: string;
   brickleAddress: string;
-  
+
   // Leasing Agreement fields
   userId: string;
   assetValue: number;
@@ -62,7 +62,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
   const [error, setError] = useState<string>('');
   const [leasings, setLeasings] = useState<LeasingDto[]>([]);
   const [api] = useState(() => new BrickleAPI(adminConfig));
-  
+
   // User selection state
   const [users, setUsers] = useState<ContactDto[]>([]);
   const [selectedUser, setSelectedUser] = useState<ContactDto | undefined>();
@@ -78,7 +78,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
       status: CampaignStatusEnum.Active,
       baseToken: '',
       brickleAddress: '',
-      
+
       // Leasing Agreement defaults
       userId: '',
       assetValue: 0,
@@ -173,7 +173,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
         maxCapital: parseFloat(data.maxCapital.toString()),
         status: parseInt(data.status.toString()),
         baseToken: data.baseToken,
-        brickleAddress: data.brickleAddress
+        brickleAddress: data.brickleAddress,
       };
 
       // Format leasing agreement data
@@ -218,7 +218,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
   };
 
   const selectedLeasing = leasings.find(l => l.id === watch('leasingId'));
-  
+
   const statusOptions = Object.keys(CampaignStatusEnum)
     .filter(key => !isNaN(Number(CampaignStatusEnum[key as keyof typeof CampaignStatusEnum])))
     .map(key => ({
@@ -259,7 +259,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
         {/* Campaign Section */}
         <div className="border border-gray-200 rounded-lg p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Campaign Information</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -286,7 +286,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
               <input
                 type="number"
                 step="0.01"
-                {...register('minCapital', { 
+                {...register('minCapital', {
                   required: 'Minimum capital is required',
                   min: { value: 0, message: 'Minimum capital must be >= 0' }
                 })}
@@ -303,7 +303,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
               <input
                 type="number"
                 step="0.01"
-                {...register('maxCapital', { 
+                {...register('maxCapital', {
                   required: 'Maximum capital is required',
                   min: { value: 0, message: 'Maximum capital must be >= 0' }
                 })}
@@ -361,11 +361,11 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
           <h3 className="text-lg font-medium text-gray-900 mb-4">Leasing Agreement Details</h3>
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
             <p className="text-sm text-blue-800">
-              <strong>Note:</strong> This section defines the agreement between the selected leasing asset and the customer (lessee) 
+              <strong>Note:</strong> This section defines the agreement between the selected leasing asset and the customer (lessee)
               who will acquire it and make monthly payments. Enter the customer&apos;s user ID below.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="md:col-span-2 lg:col-span-3">
               <label className="block text-sm font-medium text-gray-700 mb-2">

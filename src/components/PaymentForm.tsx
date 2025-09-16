@@ -25,10 +25,11 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
     s: ''
   });
   const [privateKey, setPrivateKey] = useState<string>('');
-  const [tokenAddress, setTokenAddress] = useState<string>('0x7Bb635cA8ef817402A30BCb0EbC461765aCdf51B');
-  const [paymasterAddress, setPaymasterAddress] = useState<string>('0x2Df87c5Cd5Bc60271FfAc5C1eF1DBdaB89AaB49F');
-  const [userAddress, setUserAddress] = useState<string>('0x4Ac2bb44F3a89B13A1E9ce30aBd919c40CbA4385');
-  const [relayerFee, setRelayerFee] = useState<string>('100000');
+  // Hardcoded blockchain configuration values
+  const tokenAddress = '0x7Bb635cA8ef817402A30BCb0EbC461765aCdf51B';
+  const paymasterAddress = '0x2Df87c5Cd5Bc60271FfAc5C1eF1DBdaB89AaB49F';
+  const userAddress = '0x4Ac2bb44F3a89B13A1E9ce30aBd919c40CbA4385';
+  const relayerFee = '100000';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [loadingLeasings, setLoadingLeasings] = useState(false);
@@ -43,12 +44,22 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
 
   useEffect(() => {
     if (selectedLeasingId) {
+      setError(''); // Clear any previous errors
+      setAgreements([]); // Clear previous agreements while loading
       loadAgreements();
     } else {
       setAgreements([]);
       setSelectedAgreementId('');
+      setError(''); // Clear error when no leasing selected
     }
   }, [selectedLeasingId]);
+
+  // Auto-generate permit when payment amount and private key are available
+  useEffect(() => {
+    if (paymentAmount && privateKey && !permitSignature.r && !generatingPermit) {
+      generatePermit();
+    }
+  }, [paymentAmount, privateKey]);
 
   const loadLeasings = async () => {
     try {
@@ -66,27 +77,57 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const loadAgreements = async () => {
     if (!selectedLeasingId) return;
 
+    console.log('🔍 Loading agreements for leasing ID:', selectedLeasingId);
+
     try {
       setLoadingAgreements(true);
+      setError(''); // Clear any previous errors
       const data = await api.getUserLeasingAgreementsByLeasingId(selectedLeasingId);
 
-      console.log('Agreements API response:', data);
-      console.log('Is array:', Array.isArray(data));
+      let agreementsArray: UserLeasingAgreementDto[] = [];
 
-      // Ensure data is an array
       if (Array.isArray(data)) {
-        setAgreements(data);
+        agreementsArray = data;
+      } else if (data && typeof data === 'object' && 'id' in data) {
+        // Single agreement object returned
+        agreementsArray = [data as UserLeasingAgreementDto];
+      } else if (data === null || data === undefined) {
+        agreementsArray = [];
       } else {
-        console.warn('API returned non-array data:', typeof data, data);
-        setAgreements([]);
-        if (data === null || data === undefined) {
-          setError('No agreements found for this leasing');
-        }
+        agreementsArray = [];
+      }
+
+      setAgreements(agreementsArray);
+
+      if (agreementsArray.length === 0) {
+        setError('No user leasing agreements found for this leasing. Users may need to create agreements first.');
       }
     } catch (err) {
-      console.error('Error loading agreements:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load agreements';
-      setError(`Failed to load leasing agreements: ${errorMessage}`);
+      console.error('❌ Error loading agreements:', err);
+
+      if (err instanceof Error) {
+        console.error('Error details:', {
+          message: err.message,
+          name: err.name,
+          stack: err.stack
+        });
+      }
+
+      // Enhanced error message based on error type
+      let errorMessage = 'Failed to load agreements';
+      if (err instanceof Error) {
+        if (err.message.includes('404')) {
+          errorMessage = 'Agreements endpoint not found. The API may not be available.';
+        } else if (err.message.includes('401')) {
+          errorMessage = 'Unauthorized access. Please check your admin configuration.';
+        } else if (err.message.includes('500')) {
+          errorMessage = 'Server error occurred. Please try again later.';
+        } else {
+          errorMessage = `API Error: ${err.message}`;
+        }
+      }
+
+      setError(errorMessage);
       setAgreements([]); // Reset to empty array on error
     } finally {
       setLoadingAgreements(false);
@@ -245,7 +286,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               id="leasing"
               value={selectedLeasingId}
               onChange={(e) => setSelectedLeasingId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               disabled={loadingLeasings}
               required
             >
@@ -260,29 +301,53 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
             </select>
           </div>
 
+          {/* DEBUG: Agreement State Info */}
+          {selectedLeasingId && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+              <h4 className="text-xs font-semibold text-yellow-800 mb-1">🐛 Debug Info</h4>
+              <div className="text-xs text-yellow-700 space-y-1">
+                <div>Selected Leasing ID: <code>{selectedLeasingId}</code></div>
+                <div>Loading Agreements: <code>{loadingAgreements.toString()}</code></div>
+                <div>Agreements Array: <code>{Array.isArray(agreements).toString()}</code></div>
+                <div>Agreements Length: <code>{agreements?.length || 0}</code></div>
+                <div>Agreements Type: <code>{typeof agreements}</code></div>
+                <div>First Agreement: <code>{agreements?.[0]?.id ? agreements[0].id.substring(0, 8) + '...' : 'None'}</code></div>
+              </div>
+            </div>
+          )}
+
           {/* Agreement Selection */}
           {selectedLeasingId && (
             <div>
               <label htmlFor="agreement" className="block text-sm font-medium text-gray-700 mb-2">
                 Select User Leasing Agreement *
+                {!loadingAgreements && Array.isArray(agreements) && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    ({agreements.length} found)
+                  </span>
+                )}
               </label>
               <select
                 id="agreement"
                 value={selectedAgreementId}
                 onChange={(e) => setSelectedAgreementId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 disabled={loadingAgreements}
                 required
               >
                 <option value="">
-                  {loadingAgreements ? 'Loading agreements...' : 'Select an agreement'}
+                  {loadingAgreements ? 'Loading agreements...' :
+                    agreements.length === 0 ? 'No agreements found' : 'Select an agreement'}
                 </option>
-                {agreements.map((agreement) => (
-                  <option key={agreement.id} value={agreement.id}>
-                    Agreement {agreement.id.substring(0, 8)} - ${agreement.assetValue.toLocaleString()}
-                    ({agreement.tokensPurchased} tokens)
-                  </option>
-                ))}
+                {Array.isArray(agreements) && agreements.length > 0 ? agreements.map((agreement) => {
+                  console.log('🔧 Rendering agreement option:', agreement);
+                  return (
+                    <option key={agreement.id} value={agreement.id}>
+                      Agreement {agreement.id.substring(0, 8)} - ${agreement.assetValue?.toLocaleString() || 'N/A'}
+                      ({agreement.tokensPurchased || 0} tokens)
+                    </option>
+                  );
+                }) : null}
               </select>
             </div>
           )}
@@ -293,20 +358,20 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               <h3 className="text-sm font-medium text-gray-900 mb-2">Agreement Details</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Asset Value:</span>
-                  <span className="ml-2 font-medium">${selectedAgreement.assetValue.toLocaleString()}</span>
+                  <span className="text-gray-600">Asset Value:</span>
+                  <span className="ml-2 font-medium text-gray-900">${selectedAgreement.assetValue.toLocaleString()}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Tokens Purchased:</span>
-                  <span className="ml-2 font-medium">{selectedAgreement.tokensPurchased}</span>
+                  <span className="text-gray-600">Tokens Purchased:</span>
+                  <span className="ml-2 font-medium text-gray-900">{selectedAgreement.tokensPurchased}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Term Time:</span>
-                  <span className="ml-2 font-medium">{selectedAgreement.termTime} months</span>
+                  <span className="text-gray-600">Term Time:</span>
+                  <span className="ml-2 font-medium text-gray-900">{selectedAgreement.termTime} months</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Payment Term:</span>
-                  <span className="ml-2 font-medium">{selectedAgreement.paymentTerm}</span>
+                  <span className="text-gray-600">Payment Term:</span>
+                  <span className="ml-2 font-medium text-gray-900">{selectedAgreement.paymentTerm}</span>
                 </div>
               </div>
             </div>
@@ -322,7 +387,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               id="paymentAmount"
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               placeholder="Enter payment amount (in wei or token units)"
               required
             />
@@ -331,71 +396,9 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
             </p>
           </div>
 
-          {/* Blockchain Configuration */}
+          {/* Private Key for Permit Generation */}
           <div className="bg-gray-50 p-4 rounded-md space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Blockchain Configuration</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="userAddress" className="block text-sm text-gray-600 mb-1">
-                  User Address *
-                </label>
-                <input
-                  type="text"
-                  id="userAddress"
-                  value={userAddress}
-                  onChange={(e) => setUserAddress(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0x..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="tokenAddress" className="block text-sm text-gray-600 mb-1">
-                  Token Address *
-                </label>
-                <input
-                  type="text"
-                  id="tokenAddress"
-                  value={tokenAddress}
-                  onChange={(e) => setTokenAddress(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0x..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="paymasterAddress" className="block text-sm text-gray-600 mb-1">
-                  Paymaster Address *
-                </label>
-                <input
-                  type="text"
-                  id="paymasterAddress"
-                  value={paymasterAddress}
-                  onChange={(e) => setPaymasterAddress(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0x..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="relayerFee" className="block text-sm text-gray-600 mb-1">
-                  Relayer Fee *
-                </label>
-                <input
-                  type="text"
-                  id="relayerFee"
-                  value={relayerFee}
-                  onChange={(e) => setRelayerFee(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="100000"
-                  required
-                />
-              </div>
-            </div>
+            <h3 className="text-sm font-medium text-gray-900">Permit Generation</h3>
 
             <div>
               <label htmlFor="privateKey" className="block text-sm text-gray-600 mb-1">
@@ -406,7 +409,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                 id="privateKey"
                 value={privateKey}
                 onChange={(e) => setPrivateKey(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 placeholder="Private key for signing the permit"
                 required
               />
@@ -435,7 +438,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               id="deadline"
               value={deadline}
               onChange={(e) => setDeadline(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -463,7 +466,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                 id="permitV"
                 value={permitSignature.v}
                 onChange={(e) => setPermitSignature(prev => ({ ...prev, v: parseInt(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900"
                 placeholder="27 or 28"
                 readOnly={permitSignature.r !== ''}
                 required
@@ -479,7 +482,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                 id="permitR"
                 value={permitSignature.r}
                 onChange={(e) => setPermitSignature(prev => ({ ...prev, r: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900"
                 placeholder="0x..."
                 readOnly={permitSignature.r !== ''}
                 required
@@ -495,7 +498,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                 id="permitS"
                 value={permitSignature.s}
                 onChange={(e) => setPermitSignature(prev => ({ ...prev, s: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900"
                 placeholder="0x..."
                 readOnly={permitSignature.s !== ''}
                 required

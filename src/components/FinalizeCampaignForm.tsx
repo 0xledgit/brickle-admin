@@ -58,7 +58,7 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
       }
 
       // Use the brickleAddress from the selected campaign
-      await api.finalizeCampaign(selectedCampaign.brickleAddress);
+      await api.finalizeCampaign(selectedCampaign.id);
       onSuccess(selectedCampaign.id);
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to finalize campaign';

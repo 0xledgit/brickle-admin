@@ -105,11 +105,11 @@ export class BrickleAPI {
   }
 
   async finalizeCampaign(
-    campaignAddress: string
+    campaignId: string
   ): Promise<{ success: boolean; message: string }> {
     //const thresholdFactory = process.env.NEXT_PUBLIC_THRESHOLD_FACTORY;
     const response = await axios.post(
-      `${this.adminConfig.baseUrl}/api/Campaign/${campaignAddress}/finalize`,
+      `${this.adminConfig.baseUrl}/api/Campaign/${campaignId}/finalize`,
       {
         userId: this.adminConfig.adminUserId,
       },
@@ -179,7 +179,7 @@ export class BrickleAPI {
   // UserLeasingAgreement endpoints
   async getUserLeasingAgreementsByLeasingId(
     leasingId: string
-  ): Promise<UserLeasingAgreementDto[]> {
+  ): Promise<UserLeasingAgreementDto[] | UserLeasingAgreementDto> {
     const response = await axios.get(
       `${this.adminConfig.baseUrl}/api/UserLeasingAgreement/leasing/${leasingId}`,
       {

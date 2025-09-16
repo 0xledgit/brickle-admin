@@ -7,43 +7,43 @@ export enum LeasingTypeEnum {
   Energia = 5,
   Salud = 6,
   Mobiliario = 7,
-  Agricultura = 8
+  Agricultura = 8,
 }
 
 export enum LiquidityLevelEnum {
   Low = 1,
   Medium = 2,
-  High = 3
+  High = 3,
 }
 
 // Helper objects for form display
 export const LeasingTypeLabels = {
-  [LeasingTypeEnum.Maquinaria]: 'Maquinaria',
-  [LeasingTypeEnum.Electronicos]: 'Electronicos',
-  [LeasingTypeEnum.Vehiculos]: 'Vehiculos',
-  [LeasingTypeEnum.Tecnologia]: 'Tecnologia',
-  [LeasingTypeEnum.Energia]: 'Energia',
-  [LeasingTypeEnum.Salud]: 'Salud',
-  [LeasingTypeEnum.Mobiliario]: 'Mobiliario',
-  [LeasingTypeEnum.Agricultura]: 'Agricultura'
+  [LeasingTypeEnum.Maquinaria]: "Maquinaria",
+  [LeasingTypeEnum.Electronicos]: "Electronicos",
+  [LeasingTypeEnum.Vehiculos]: "Vehiculos",
+  [LeasingTypeEnum.Tecnologia]: "Tecnologia",
+  [LeasingTypeEnum.Energia]: "Energia",
+  [LeasingTypeEnum.Salud]: "Salud",
+  [LeasingTypeEnum.Mobiliario]: "Mobiliario",
+  [LeasingTypeEnum.Agricultura]: "Agricultura",
 };
 
 export const LiquidityLevelLabels = {
-  [LiquidityLevelEnum.Low]: 'Low',
-  [LiquidityLevelEnum.Medium]: 'Medium',
-  [LiquidityLevelEnum.High]: 'High'
+  [LiquidityLevelEnum.Low]: "Low",
+  [LiquidityLevelEnum.Medium]: "Medium",
+  [LiquidityLevelEnum.High]: "High",
 };
 
 export enum CampaignStatusEnum {
   Active = 0,
   Inactive = 1,
-  Completed = 2
+  Completed = 2,
 }
 
 export const CampaignStatusLabels = {
-  [CampaignStatusEnum.Active]: 'Active',
-  [CampaignStatusEnum.Inactive]: 'Inactive',
-  [CampaignStatusEnum.Completed]: 'Completed'
+  [CampaignStatusEnum.Active]: "Active",
+  [CampaignStatusEnum.Inactive]: "Inactive",
+  [CampaignStatusEnum.Completed]: "Completed",
 };
 
 // DTOs
@@ -84,6 +84,8 @@ export interface CreateCampaignDto {
   status: number; // 0 for Active, 1 for Inactive, 2 for Completed
   baseToken: string;
   brickleAddress: string;
+  campaignAddress?: string;
+  campaignTx?: string;
 }
 
 export interface CampaignDto extends CreateCampaignDto {
