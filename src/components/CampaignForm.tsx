@@ -181,7 +181,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
         userId: selectedUser.id,
         leasingId: data.leasingId,
         assetValue: parseFloat(data.assetValue.toString()),
-        usefulLife: parseInt(data.usefulLife.toString()),
+        usefulLife: parseFloat(data.usefulLife.toString()),
         termTime: parseInt(data.termTime.toString()),
         paymentTerm: data.paymentTerm,
         agreementType: parseInt(data.agreementType.toString()),
@@ -400,6 +400,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
               <label className="block text-sm font-medium text-gray-700 mb-2">Useful Life (years)</label>
               <input
                 type="number"
+                step="0.01"
                 {...register('usefulLife', { min: 0 })}
                 className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
