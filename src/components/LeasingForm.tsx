@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { CreateLeasingDto, UpdateLeasingDto, LeasingDto, LeasingTypeEnum, LiquidityLevelEnum, LeasingTypeLabels, LiquidityLevelLabels, AdminConfig } from '@/lib/types';
+import { CreateLeasingDto, UpdateLeasingDto, LeasingDto, LeasingTypeEnum, LiquidityLevelEnum, LeasingTypeLabels, LiquidityLevelLabels, AdminConfig, CompanyDto, CreateCompanyDto, OperationMeasureEnum, AssetDetailDto } from '@/lib/types';
 import { BrickleAPI } from '@/lib/api';
 import FileUpload from './FileUpload';
 
@@ -18,6 +18,19 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [api] = useState(() => new BrickleAPI(adminConfig));
+  const [companies, setCompanies] = useState<CompanyDto[]>([]);
+  const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
+  const [newCompany, setNewCompany] = useState<CreateCompanyDto>({
+    name: '',
+    operationTime: 0,
+    operationMeasure: OperationMeasureEnum.YEARLY,
+    creditRating: '',
+    leasingContract: '',
+    userId: adminConfig.adminUserId,
+  });
+  const [details, setDetails] = useState<AssetDetailDto[]>(
+    initialData?.details || []
+  );
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<CreateLeasingDto | UpdateLeasingDto>({
     defaultValues: initialData ? {
@@ -35,7 +48,8 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       tir: initialData.tir,
       active: initialData.active,
       coverImageUrl: initialData.coverImageUrl,
-      miniatureImageUrl: initialData.miniatureImageUrl
+      miniatureImageUrl: initialData.miniatureImageUrl,
+      companyId: initialData.companyId
     } : {
       name: '',
       quantity: 0,
@@ -51,9 +65,59 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       tir: 0,
       active: true,
       coverImageUrl: '',
-      miniatureImageUrl: ''
+      miniatureImageUrl: '',
+      companyId: ''
     }
   });
+
+  // Load companies on mount
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        const companiesData = await api.getAllCompanies();
+        setCompanies(companiesData);
+      } catch (err: unknown) {
+        console.error('Failed to load companies:', err);
+      }
+    };
+    loadCompanies();
+  }, [api]);
+
+  const handleAddDetail = () => {
+    if (details.length < 8) {
+      setDetails([...details, { title: '', value: '' }]);
+    }
+  };
+
+  const handleRemoveDetail = (index: number) => {
+    setDetails(details.filter((_, i) => i !== index));
+  };
+
+  const handleDetailChange = (index: number, field: 'title' | 'value', value: string) => {
+    const updatedDetails = [...details];
+    updatedDetails[index][field] = value;
+    setDetails(updatedDetails);
+  };
+
+  const handleCreateCompany = async () => {
+    try {
+      const createdCompany = await api.createCompany(newCompany);
+      setCompanies([...companies, createdCompany]);
+      setValue('companyId', createdCompany.id);
+      setShowNewCompanyForm(false);
+      setNewCompany({
+        name: '',
+        operationTime: 0,
+        operationMeasure: OperationMeasureEnum.YEARLY,
+        creditRating: '',
+        leasingContract: '',
+        userId: adminConfig.adminUserId,
+      });
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to create company';
+      setError(errorMessage);
+    }
+  };
 
   const onSubmit = async (data: CreateLeasingDto | UpdateLeasingDto) => {
     try {
@@ -74,7 +138,9 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
         type: parseInt(data.type.toString()) as LeasingTypeEnum,
         liquidity: parseInt(data.liquidity.toString()) as LiquidityLevelEnum,
         // Convert contractTime to ISO string if provided
-        contractTime: data.contractTime ? new Date(data.contractTime).toISOString() : undefined
+        contractTime: data.contractTime ? new Date(data.contractTime).toISOString() : undefined,
+        // Add details array
+        details: details.filter(d => d.title && d.value)
       };
 
       let result: LeasingDto;
@@ -298,6 +364,172 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
             currentUrl={watch('miniatureImageUrl')}
             disabled={loading}
           />
+        </div>
+
+        {/* Company Section */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Information</h3>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Company</label>
+              <div className="flex gap-2">
+                <select
+                  {...register('companyId')}
+                  className="flex-1 text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                >
+                  <option value="">Select a company...</option>
+                  {companies.map(company => (
+                    <option key={company.id} value={company.id}>
+                      {company.name} - {company.creditRating}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowNewCompanyForm(!showNewCompanyForm)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  disabled={loading}
+                >
+                  {showNewCompanyForm ? 'Cancel' : 'New Company'}
+                </button>
+              </div>
+            </div>
+
+            {showNewCompanyForm && (
+              <div className="bg-gray-50 p-4 rounded-md space-y-4">
+                <h4 className="font-medium text-gray-900">Create New Company</h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                    <input
+                      type="text"
+                      value={newCompany.name}
+                      onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
+                      className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Credit Rating</label>
+                    <input
+                      type="text"
+                      value={newCompany.creditRating}
+                      onChange={(e) => setNewCompany({ ...newCompany, creditRating: e.target.value })}
+                      className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Operation Time</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newCompany.operationTime}
+                      onChange={(e) => setNewCompany({ ...newCompany, operationTime: parseFloat(e.target.value) })}
+                      className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Operation Measure</label>
+                    <select
+                      value={newCompany.operationMeasure}
+                      onChange={(e) => setNewCompany({ ...newCompany, operationMeasure: e.target.value as OperationMeasureEnum })}
+                      className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={loading}
+                    >
+                      <option value={OperationMeasureEnum.YEARLY}>Yearly</option>
+                      <option value={OperationMeasureEnum.MONTHLY}>Monthly</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Leasing Contract (Optional)</label>
+                    <input
+                      type="text"
+                      value={newCompany.leasingContract}
+                      onChange={(e) => setNewCompany({ ...newCompany, leasingContract: e.target.value })}
+                      className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCreateCompany}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  disabled={loading}
+                >
+                  Create Company
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Details Section */}
+        <div className="border-t pt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Leasing Details</h3>
+            <button
+              type="button"
+              onClick={handleAddDetail}
+              disabled={loading || details.length >= 8}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              Add Detail ({details.length}/8)
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {details.map((detail, index) => (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <input
+                    type="text"
+                    value={detail.title}
+                    onChange={(e) => handleDetailChange(index, 'title', e.target.value)}
+                    className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Color, Size, Weight"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Value</label>
+                    <input
+                      type="text"
+                      value={detail.value}
+                      onChange={(e) => handleDetailChange(index, 'value', e.target.value)}
+                      className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., Blue, 10kg, Large"
+                      disabled={loading}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDetail(index)}
+                    className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 self-end"
+                    disabled={loading}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {details.length === 0 && (
+              <p className="text-gray-500 text-sm italic">No details added yet. Click &quot;Add Detail&quot; to add characteristics.</p>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end space-x-3">

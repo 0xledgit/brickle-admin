@@ -10,6 +10,8 @@ import {
   AdminConfig,
   CreatePaymentDto,
   UserLeasingAgreementDto,
+  CreateCompanyDto,
+  CompanyDto,
 } from "./types";
 import { createAPIHeaders, createFormDataHeaders } from "@/utils/headers";
 
@@ -182,6 +184,28 @@ export class BrickleAPI {
   ): Promise<UserLeasingAgreementDto[] | UserLeasingAgreementDto> {
     const response = await axios.get(
       `${this.adminConfig.baseUrl}/api/UserLeasingAgreement/leasing/${leasingId}`,
+      {
+        headers: createAPIHeaders(this.adminConfig),
+      }
+    );
+    return response.data;
+  }
+
+  // Company endpoints
+  async getAllCompanies(): Promise<CompanyDto[]> {
+    const response = await axios.get(
+      `${this.adminConfig.baseUrl}/api/Company`,
+      {
+        headers: createAPIHeaders(this.adminConfig),
+      }
+    );
+    return response.data;
+  }
+
+  async createCompany(company: CreateCompanyDto): Promise<CompanyDto> {
+    const response = await axios.post(
+      `${this.adminConfig.baseUrl}/api/Company`,
+      company,
       {
         headers: createAPIHeaders(this.adminConfig),
       }

@@ -64,6 +64,7 @@ export interface CreateLeasingDto {
   tir: number;
   active: boolean;
   details?: AssetDetailDto[];
+  companyId?: string;
 }
 
 export interface UpdateLeasingDto extends CreateLeasingDto {
@@ -124,7 +125,29 @@ export interface CreateUserLeasingAgreementDto {
 }
 
 export interface AssetDetailDto {
-  [key: string]: unknown;
+  title: string;
+  value: string;
+}
+
+// Company types
+export enum OperationMeasureEnum {
+  YEARLY = "YEARLY",
+  MONTHLY = "MONTHLY",
+}
+
+export interface CreateCompanyDto {
+  name: string;
+  operationTime: number;
+  operationMeasure: OperationMeasureEnum;
+  creditRating: string;
+  leasingContract?: string;
+  userId: string;
+}
+
+export interface CompanyDto extends CreateCompanyDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ContactDto {
