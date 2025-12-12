@@ -60,6 +60,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
   const [loading, setLoading] = useState(false);
   const [loadingLeasings, setLoadingLeasings] = useState(true);
   const [error, setError] = useState<string>('');
+  const [includeInsurance, setIncludeInsurance] = useState(false);
   const [leasings, setLeasings] = useState<LeasingDto[]>([]);
   const [api] = useState(() => new BrickleAPI(adminConfig));
 
@@ -518,13 +519,35 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
               />
             </div>
 
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Insurance Percentage (%)</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">Insurance Percentage (%)</label>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="includeInsurance"
+                    checked={includeInsurance}
+                    onChange={(e) => {
+                      setIncludeInsurance(e.target.checked);
+                      if (!e.target.checked) {
+                        setValue('insurancePercentage', 0);
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
+                  />
+                  <label htmlFor="includeInsurance" className="text-sm text-gray-600 cursor-pointer select-none">
+                    Include Insurance
+                  </label>
+                </div>
+              </div>
               <input
                 type="number"
                 step="0.01"
+                disabled={!includeInsurance}
                 {...register('insurancePercentage', { min: 0, max: 100 })}
-                className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${!includeInsurance ? 'bg-gray-100 text-gray-400' : 'text-black'
+                  }`}
               />
             </div>
 

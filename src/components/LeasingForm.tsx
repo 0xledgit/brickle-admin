@@ -101,7 +101,13 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
 
   const handleCreateCompany = async () => {
     try {
-      const createdCompany = await api.createCompany(newCompany);
+      // Ensure optional fields are handled correctly (convert empty strings to undefined)
+      const companyPayload: CreateCompanyDto = {
+        ...newCompany,
+        leasingContract: newCompany.leasingContract ? newCompany.leasingContract : undefined
+      };
+
+      const createdCompany = await api.createCompany(companyPayload);
       setCompanies([...companies, createdCompany]);
       setValue('companyId', createdCompany.id);
       setShowNewCompanyForm(false);
@@ -307,12 +313,35 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
             </select>
           </div>
 
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Contract Time</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Contract Duration (Months)</label>
+            <input
+              type="number"
+              min="1"
+              onChange={(e) => {
+                const months = parseInt(e.target.value);
+                if (!isNaN(months) && months > 0) {
+                  const date = new Date();
+                  date.setMonth(date.getMonth() + months);
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  setValue('contractTime', `${year}-${month}-${day}`);
+                }
+              }}
+              className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter duration in months"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Contract End Date</label>
             <input
               type="date"
               {...register('contractTime')}
-              className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              readOnly
+              className="w-full text-black px-3 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -440,7 +469,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
                     <label className="block text-sm font-medium text-gray-700 mb-2">Operation Measure</label>
                     <select
                       value={newCompany.operationMeasure}
-                      onChange={(e) => setNewCompany({ ...newCompany, operationMeasure: e.target.value as OperationMeasureEnum })}
+                      onChange={(e) => setNewCompany({ ...newCompany, operationMeasure: parseInt(e.target.value) as OperationMeasureEnum })}
                       className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       disabled={loading}
                     >

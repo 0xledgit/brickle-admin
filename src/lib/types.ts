@@ -131,8 +131,8 @@ export interface AssetDetailDto {
 
 // Company types
 export enum OperationMeasureEnum {
-  YEARLY = "YEARLY",
-  MONTHLY = "MONTHLY",
+  YEARLY = 0,
+  MONTHLY = 1,
 }
 
 export interface CreateCompanyDto {

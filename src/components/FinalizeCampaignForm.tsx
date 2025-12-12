@@ -1,8 +1,6 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { CampaignDto, AdminConfig } from '@/lib/types';
+import { CampaignDto, LeasingDto, AdminConfig } from '@/lib/types';
 import { BrickleAPI } from '@/lib/api';
 
 interface FinalizeCampaignFormProps {
@@ -17,9 +15,10 @@ interface FinalizeCampaignFormData {
 
 export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel }: FinalizeCampaignFormProps) {
   const [loading, setLoading] = useState(false);
-  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string>('');
   const [campaigns, setCampaigns] = useState<CampaignDto[]>([]);
+  const [leasings, setLeasings] = useState<LeasingDto[]>([]);
   const [api] = useState(() => new BrickleAPI(adminConfig));
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FinalizeCampaignFormData>({
@@ -29,21 +28,26 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
   });
 
   useEffect(() => {
-    const fetchCampaigns = async () => {
+    const fetchData = async () => {
       try {
-        setLoadingCampaigns(true);
-        const allCampaigns = await api.getAllCampaigns();
+        setLoadingData(true);
+        const [allCampaigns, allLeasings] = await Promise.all([
+          api.getAllCampaigns(),
+          api.getAllLeasings()
+        ]);
+
         // Filter only active campaigns (status 0)
         setCampaigns(allCampaigns.filter(campaign => campaign.status === 0));
+        setLeasings(allLeasings);
       } catch (err) {
-        console.error('Failed to fetch campaigns:', err);
-        setError('Failed to load campaigns');
+        console.error('Failed to fetch data:', err);
+        setError('Failed to load campaigns or leasings');
       } finally {
-        setLoadingCampaigns(false);
+        setLoadingData(false);
       }
     };
 
-    fetchCampaigns();
+    fetchData();
   }, [api]);
 
   const onSubmit = async (data: FinalizeCampaignFormData) => {
@@ -70,8 +74,10 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
   };
 
   const selectedCampaign = campaigns.find(c => c.id === watch('campaignId'));
+  // Find associated leasing for preview
+  const selectedLeasing = selectedCampaign ? leasings.find(l => l.id === selectedCampaign.leasingId) : undefined;
 
-  if (loadingCampaigns) {
+  if (loadingData) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="text-center">Loading campaigns...</div>
@@ -98,7 +104,7 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
         </div>
       )}
 
-      {campaigns.length === 0 && !loadingCampaigns && (
+      {campaigns.length === 0 && !loadingData && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
           No active campaigns available to finalize.
         </div>
@@ -129,11 +135,15 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
             disabled={campaigns.length === 0}
           >
             <option value="">-- Select an active campaign --</option>
-            {campaigns.map(campaign => (
-              <option key={campaign.id} value={campaign.id}>
-                Campaign {campaign.id} - Min: ${campaign.minCapital} - Max: ${campaign.maxCapital} - Token: {campaign.baseToken}
-              </option>
-            ))}
+            {campaigns.map(campaign => {
+              // Try to find matching leasing by id
+              const leasingName = leasings.find(l => l.id === campaign.leasingId)?.name || 'Unknown Asset';
+              return (
+                <option key={campaign.id} value={campaign.id}>
+                  {leasingName} (Campaign {campaign.id}) - Min: ${campaign.minCapital}
+                </option>
+              );
+            })}
           </select>
           {errors.campaignId && <p className="text-red-600 text-sm mt-1">{errors.campaignId.message}</p>}
         </div>
@@ -144,7 +154,7 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
             <h3 className="font-medium text-gray-900 mb-2">⚠️ Campaign to be Finalized</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-black">
               <div><strong>Campaign ID:</strong> {selectedCampaign.id}</div>
-              <div><strong>Leasing ID:</strong> {selectedCampaign.leasingId}</div>
+              {selectedLeasing && <div><strong>Asset Name:</strong> {selectedLeasing.name}</div>}
               <div><strong>Min Capital:</strong> ${selectedCampaign.minCapital}</div>
               <div><strong>Max Capital:</strong> ${selectedCampaign.maxCapital}</div>
               <div><strong>Base Token:</strong> {selectedCampaign.baseToken}</div>
