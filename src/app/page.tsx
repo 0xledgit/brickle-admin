@@ -7,6 +7,7 @@ import LeasingForm from '@/components/LeasingForm';
 import CampaignForm from '@/components/CampaignForm';
 import FinalizeCampaignForm from '@/components/FinalizeCampaignForm';
 import PaymentForm from '@/components/PaymentForm';
+import DocumentManagement from '@/components/DocumentManagement';
 
 export default function Home() {
   const [adminConfig, setAdminConfig] = useState<AdminConfig | null>(null);
@@ -14,6 +15,7 @@ export default function Home() {
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [showFinalizeCampaignForm, setShowFinalizeCampaignForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showDocumentManagement, setShowDocumentManagement] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
   const handleConfigSave = (config: AdminConfig) => {
@@ -88,6 +90,15 @@ export default function Home() {
     );
   }
 
+  if (showDocumentManagement && adminConfig) {
+    return (
+      <DocumentManagement
+        adminConfig={adminConfig}
+        onCancel={() => setShowDocumentManagement(false)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Success Message */}
@@ -150,6 +161,17 @@ export default function Home() {
                 <div className="text-lg font-medium text-gray-900">Create Payment</div>
                 <div className="text-sm text-gray-500 text-center mt-1">
                   Create payment for leasing agreement
+                </div>
+              </button>
+
+              <button
+                onClick={() => setShowDocumentManagement(true)}
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors"
+              >
+                <div className="text-3xl mb-2">📄</div>
+                <div className="text-lg font-medium text-gray-900">User Documents</div>
+                <div className="text-sm text-gray-500 text-center mt-1">
+                  Review and approve user documents
                 </div>
               </button>
             </div>

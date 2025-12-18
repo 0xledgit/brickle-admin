@@ -12,6 +12,8 @@ import {
   UserLeasingAgreementDto,
   CreateCompanyDto,
   CompanyDto,
+  UserDocumentDto,
+  UpdateUserDocumentStatusDto,
 } from "./types";
 import { createAPIHeaders, createFormDataHeaders } from "@/utils/headers";
 
@@ -206,6 +208,32 @@ export class BrickleAPI {
     const response = await axios.post(
       `${this.adminConfig.baseUrl}/api/Company`,
       company,
+      {
+        headers: createAPIHeaders(this.adminConfig),
+      }
+    );
+    return response.data;
+  }
+
+  // UserDocument endpoints
+  async getAllUserDocuments(status?: string): Promise<UserDocumentDto[]> {
+    const url = `${this.adminConfig.baseUrl}/api/User/documents/all`;
+    const params = status ? { status } : {};
+
+    const response = await axios.get(url, {
+      headers: createAPIHeaders(this.adminConfig),
+      params,
+    });
+    return response.data;
+  }
+
+  async updateUserDocumentStatus(
+    id: string,
+    update: UpdateUserDocumentStatusDto
+  ): Promise<UserDocumentDto> {
+    const response = await axios.put(
+      `${this.adminConfig.baseUrl}/api/User/documents/${id}/status`,
+      update,
       {
         headers: createAPIHeaders(this.adminConfig),
       }

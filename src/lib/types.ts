@@ -131,8 +131,8 @@ export interface AssetDetailDto {
 
 // Company types
 export enum OperationMeasureEnum {
-  YEARLY = 0,
-  MONTHLY = 1,
+  YEARLY = "Yearly",
+  MONTHLY = "Monthly",
 }
 
 export interface CreateCompanyDto {
@@ -224,4 +224,22 @@ export interface UserLeasingAgreementDto {
   createdAt: string;
   updatedAt: string;
   leasing?: LeasingDto;
+}
+
+export interface UserDocumentDto {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  name: string;
+  documentUrl: string;
+  status: string;
+  observation?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateUserDocumentStatusDto {
+  status: string;
+  observation?: string;
 }

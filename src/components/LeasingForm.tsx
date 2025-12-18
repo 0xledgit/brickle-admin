@@ -469,7 +469,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
                     <label className="block text-sm font-medium text-gray-700 mb-2">Operation Measure</label>
                     <select
                       value={newCompany.operationMeasure}
-                      onChange={(e) => setNewCompany({ ...newCompany, operationMeasure: parseInt(e.target.value) as OperationMeasureEnum })}
+                      onChange={(e) => setNewCompany({ ...newCompany, operationMeasure: e.target.value as OperationMeasureEnum })}
                       className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       disabled={loading}
                     >
