@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ethers } from 'ethers';
 import { AdminConfig, LeasingDto, UserLeasingAgreementDto, CreatePaymentDto, PermitSignature } from '@/lib/types';
 import { BrickleAPI } from '@/lib/api';
@@ -39,7 +39,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   // Hardcoded blockchain configuration values
   const tokenAddress = '0x7Bb635cA8ef817402A30BCb0EbC461765aCdf51B';
   const paymasterAddress = '0x2Df87c5Cd5Bc60271FfAc5C1eF1DBdaB89AaB49F';
-  const userAddress = '0x4Ac2bb44F3a89B13A1E9ce30aBd919c40CbA4385';
+  // const userAddress = '0x4Ac2bb44F3a89B13A1E9ce30aBd919c40CbA4385'; // Commented out as it's unused but kept for reference
   const relayerFee = '100000';
 
   const [loading, setLoading] = useState(false);
@@ -49,51 +49,26 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const [fetchingContract, setFetchingContract] = useState(false);
   const [generatingPermit, setGeneratingPermit] = useState(false);
 
-  const api = new BrickleAPI(adminConfig);
+  const api = useMemo(() => new BrickleAPI(adminConfig), [adminConfig]);
 
-  useEffect(() => {
-    loadLeasings();
-  }, []);
-
-  useEffect(() => {
-    if (selectedLeasingId) {
-      setError('');
-      setAgreements([]);
-      loadAgreements();
-    } else {
-      setAgreements([]);
-      setSelectedAgreementId('');
-      setError('');
-    }
-  }, [selectedLeasingId]);
-
-  useEffect(() => {
-    if (selectedAgreementId) {
-      loadContractData();
-    }
-  }, [selectedAgreementId]);
-
-  // Update payment amount when type changes or suggested amount loads
-  useEffect(() => {
-    if (paymentType === 'suggested') {
-      setPaymentAmount(suggestedAmount);
-    }
-  }, [paymentType, suggestedAmount]);
-
-  const loadLeasings = async () => {
+  const loadLeasings = useCallback(async () => {
     try {
       setLoadingLeasings(true);
       const data = await api.getAllLeasings();
       setLeasings(data);
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load leasings';
       setError(`Failed to load leasings: ${errorMessage}`);
     } finally {
       setLoadingLeasings(false);
     }
-  };
+  }, [api]);
 
-  const loadAgreements = async () => {
+  useEffect(() => {
+    loadLeasings();
+  }, [loadLeasings]);
+
+  const loadAgreements = useCallback(async () => {
     if (!selectedLeasingId) return;
     try {
       setLoadingAgreements(true);
@@ -119,9 +94,21 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
     } finally {
       setLoadingAgreements(false);
     }
-  };
+  }, [api, selectedLeasingId]);
 
-  const loadContractData = async () => {
+  useEffect(() => {
+    if (selectedLeasingId) {
+      setError('');
+      setAgreements([]);
+      loadAgreements();
+    } else {
+      setAgreements([]);
+      setSelectedAgreementId('');
+      setError('');
+    }
+  }, [selectedLeasingId, loadAgreements]);
+
+  const loadContractData = useCallback(async () => {
     const agreement = agreements.find(a => a.id === selectedAgreementId);
     if (!agreement?.leasingCoreAddress) return;
 
@@ -153,7 +140,20 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
     } finally {
       setFetchingContract(false);
     }
-  };
+  }, [agreements, selectedAgreementId, paymentType]);
+
+  useEffect(() => {
+    if (selectedAgreementId) {
+      loadContractData();
+    }
+  }, [selectedAgreementId, loadContractData]);
+
+  // Update payment amount when type changes or suggested amount loads
+  useEffect(() => {
+    if (paymentType === 'suggested') {
+      setPaymentAmount(suggestedAmount);
+    }
+  }, [paymentType, suggestedAmount]);
 
   const generatePermit = async () => {
     if (!privateKey || !paymentAmount) {
@@ -169,7 +169,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
         "https://polygon-amoy.g.alchemy.com/v2/zetnkpwznZk_YH-8UAoij"
       );
       const signer = new ethers.Wallet(privateKey, provider);
-      const userAddress = await signer.getAddress(); // Ensure we use the signer's address
+      const signerAddress = await signer.getAddress(); // Renamed from userAddress to avoid conflict
 
       const token = new ethers.Contract(
         tokenAddress,
@@ -185,7 +185,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       const version = "1";
       const network = await provider.getNetwork();
       const chainId = network.chainId;
-      const nonce = await token.nonces(userAddress);
+      const nonce = await token.nonces(signerAddress);
       const newDeadline = Math.floor(Date.now() / 1000) + 3600;
 
       const campaignCommitment = ethers.getBigInt(paymentAmount);
@@ -210,7 +210,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       };
 
       const message = {
-        owner: userAddress,
+        owner: signerAddress,
         spender: paymasterAddress,
         value: totalPermitAmount,
         nonce: nonce,
@@ -223,7 +223,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       setPermitSignature({ v, r, s });
       setDeadline(newDeadline);
 
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate permit';
       setError(`Failed to generate permit: ${errorMessage}`);
     } finally {
@@ -262,7 +262,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
 
       const result = await api.createPayment(payment);
       onSuccess(result);
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(`Failed to create payment: ${errorMessage}`);
     } finally {

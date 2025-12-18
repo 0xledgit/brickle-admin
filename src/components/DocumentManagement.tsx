@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { BrickleAPI } from '@/lib/api';
 import { AdminConfig, UserDocumentDto } from '@/lib/types';
 
@@ -16,31 +16,31 @@ export default function DocumentManagement({ adminConfig, onCancel }: DocumentMa
     const [filter, setFilter] = useState<string>('PENDING');
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-    const api = new BrickleAPI(adminConfig);
+    const api = useMemo(() => new BrickleAPI(adminConfig), [adminConfig]);
 
-    const fetchDocuments = async () => {
+    const fetchDocuments = useCallback(async () => {
         try {
             setLoading(true);
             const data = await api.getAllUserDocuments(filter === 'ALL' ? undefined : filter);
             setDocuments(data);
-        } catch (err: any) {
-            setError(err.message || 'Failed to fetch documents');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch documents');
         } finally {
             setLoading(false);
         }
-    };
+    }, [api, filter]);
 
     useEffect(() => {
         fetchDocuments();
-    }, [filter]);
+    }, [fetchDocuments]);
 
     const handleUpdateStatus = async (id: string, status: string, observation?: string) => {
         try {
             setUpdatingId(id);
             await api.updateUserDocumentStatus(id, { status, observation });
             await fetchDocuments();
-        } catch (err: any) {
-            alert(`Error updating status: ${err.message}`);
+        } catch (err: unknown) {
+            alert(`Error updating status: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setUpdatingId(null);
         }
