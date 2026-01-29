@@ -50,7 +50,9 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       coverImageUrl: initialData.coverImageUrl,
       miniatureImageUrl: initialData.miniatureImageUrl,
       discoverImageUrl: initialData.discoverImageUrl,
-      companyId: initialData.companyId
+      companyId: initialData.companyId,
+      reteIcaPct: initialData.reteIcaPct,
+      reteFuentePct: initialData.reteFuentePct
     } : {
       name: '',
       quantity: 0,
@@ -68,7 +70,9 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       coverImageUrl: '',
       miniatureImageUrl: '',
       discoverImageUrl: '',
-      companyId: ''
+      companyId: '',
+      reteIcaPct: 0,
+      reteFuentePct: 0
     }
   });
 
@@ -142,6 +146,8 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
         tokensAvailable: parseInt(data.tokensAvailable.toString()),
         pricePerToken: parseFloat(data.pricePerToken.toString()),
         tir: parseFloat(data.tir.toString()),
+        reteIcaPct: parseFloat(data.reteIcaPct.toString()),
+        reteFuentePct: parseFloat(data.reteFuentePct.toString()),
         // Convert enum values to numbers
         type: parseInt(data.type.toString()) as LeasingTypeEnum,
         liquidity: parseInt(data.liquidity.toString()) as LiquidityLevelEnum,
@@ -304,6 +310,28 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">ReteICA (%)</label>
+            <input
+              type="number"
+              step="0.001"
+              {...register('reteIcaPct', { required: 'ReteICA is required' })}
+              className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.reteIcaPct && <p className="text-red-600 text-sm mt-1">{errors.reteIcaPct.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">ReteFuente (%)</label>
+            <input
+              type="number"
+              step="0.001"
+              {...register('reteFuentePct', { required: 'ReteFuente is required' })}
+              className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.reteFuentePct && <p className="text-red-600 text-sm mt-1">{errors.reteFuentePct.message}</p>}
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Liquidity</label>
             <select
               {...register('liquidity', { required: 'Liquidity is required' })}
@@ -385,6 +413,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
             entityType="Leasing"
             propertyName="Cover"
             currentUrl={watch('coverImageUrl')}
+            size="16:9"
             disabled={loading}
           />
 
@@ -393,6 +422,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
             entityType="Leasing"
             propertyName="Miniature"
             currentUrl={watch('miniatureImageUrl')}
+            size="160px x 107px"
             disabled={loading}
           />
 
@@ -401,6 +431,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
             entityType="Leasing"
             propertyName="Discover"
             currentUrl={watch('discoverImageUrl')}
+            size="1:1"
             disabled={loading}
           />
         </div>

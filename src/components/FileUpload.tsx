@@ -8,6 +8,7 @@ interface FileUploadProps {
   entityType: 'Leasing' | 'Campaign';
   propertyName: 'Cover' | 'Miniature' | 'Discover';
   currentUrl?: string;
+  size?: string;
   disabled?: boolean;
 }
 
@@ -16,6 +17,7 @@ export default function FileUpload({
   entityType,
   propertyName,
   currentUrl,
+  size,
   disabled = false
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
@@ -116,6 +118,7 @@ export default function FileUpload({
         <div className="font-medium mb-1">File naming requirements:</div>
         <div>Format: <code className="bg-white px-1 rounded">{expectedFormat}</code></div>
         <div>Example: <code className="bg-white px-1 rounded">{exampleFormat}</code></div>
+        {size && <div>Size: {size}</div>}
         <div className="mt-1">Supported formats: JPG, PNG, GIF, BMP, WebP (max 10MB)</div>
       </div>
 

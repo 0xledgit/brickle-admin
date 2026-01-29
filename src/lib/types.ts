@@ -66,6 +66,8 @@ export interface CreateLeasingDto {
   active: boolean;
   details?: AssetDetailDto[];
   companyId?: string;
+  reteIcaPct: number;
+  reteFuentePct: number;
 }
 
 export interface UpdateLeasingDto extends CreateLeasingDto {
@@ -123,6 +125,8 @@ export interface CreateUserLeasingAgreementDto {
   riskLevel: number;
   riskRate: number;
   iva: number;
+  reteIcaPct: number;
+  reteFuentePct: number;
 }
 
 export interface AssetDetailDto {
@@ -222,6 +226,8 @@ export interface UserLeasingAgreementDto {
   riskLevel: number;
   riskRate: number;
   iva: number;
+  reteIcaPct: number;
+  reteFuentePct: number;
   createdAt: string;
   updatedAt: string;
   leasing?: LeasingDto;
