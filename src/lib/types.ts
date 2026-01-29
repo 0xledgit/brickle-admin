@@ -60,6 +60,7 @@ export interface CreateLeasingDto {
   liquidity: LiquidityLevelEnum;
   coverImageUrl?: string;
   miniatureImageUrl?: string;
+  discoverImageUrl?: string;
   contractAddress: string;
   tir: number;
   active: boolean;

@@ -49,6 +49,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       active: initialData.active,
       coverImageUrl: initialData.coverImageUrl,
       miniatureImageUrl: initialData.miniatureImageUrl,
+      discoverImageUrl: initialData.discoverImageUrl,
       companyId: initialData.companyId
     } : {
       name: '',
@@ -66,6 +67,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       active: true,
       coverImageUrl: '',
       miniatureImageUrl: '',
+      discoverImageUrl: '',
       companyId: ''
     }
   });
@@ -166,7 +168,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
     }
   };
 
-  const handleFileUpload = async (file: File, propertyName: 'coverImageUrl' | 'miniatureImageUrl') => {
+  const handleFileUpload = async (file: File, propertyName: 'coverImageUrl' | 'miniatureImageUrl' | 'discoverImageUrl') => {
     // Use the admin user ID as the entity ID for file uploads
     const entityId = adminConfig.adminUserId;
     if (!entityId) {
@@ -377,7 +379,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
         </div>
 
         {/* File Uploads */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FileUpload
             onFileUpload={(file) => handleFileUpload(file, 'coverImageUrl')}
             entityType="Leasing"
@@ -391,6 +393,14 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
             entityType="Leasing"
             propertyName="Miniature"
             currentUrl={watch('miniatureImageUrl')}
+            disabled={loading}
+          />
+
+          <FileUpload
+            onFileUpload={(file) => handleFileUpload(file, 'discoverImageUrl')}
+            entityType="Leasing"
+            propertyName="Discover"
+            currentUrl={watch('discoverImageUrl')}
             disabled={loading}
           />
         </div>

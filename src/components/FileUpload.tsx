@@ -6,17 +6,17 @@ import { FileResponseDto } from '@/lib/types';
 interface FileUploadProps {
   onFileUpload: (file: File) => Promise<FileResponseDto>;
   entityType: 'Leasing' | 'Campaign';
-  propertyName: 'Cover' | 'Miniature';
+  propertyName: 'Cover' | 'Miniature' | 'Discover';
   currentUrl?: string;
   disabled?: boolean;
 }
 
-export default function FileUpload({ 
-  onFileUpload, 
-  entityType, 
-  propertyName, 
+export default function FileUpload({
+  onFileUpload,
+  entityType,
+  propertyName,
   currentUrl,
-  disabled = false 
+  disabled = false
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string>(currentUrl || '');
@@ -75,7 +75,7 @@ export default function FileUpload({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {propertyName} Image
         </label>
-        
+
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
           <input
             ref={fileInputRef}
@@ -85,7 +85,7 @@ export default function FileUpload({
             disabled={disabled || uploading}
             className="hidden"
           />
-          
+
           {uploadedUrl ? (
             <div className="space-y-2">
               <div className="text-sm text-green-600">✓ File uploaded successfully</div>
@@ -111,14 +111,14 @@ export default function FileUpload({
           )}
         </div>
       </div>
-      
+
       <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
         <div className="font-medium mb-1">File naming requirements:</div>
         <div>Format: <code className="bg-white px-1 rounded">{expectedFormat}</code></div>
         <div>Example: <code className="bg-white px-1 rounded">{exampleFormat}</code></div>
         <div className="mt-1">Supported formats: JPG, PNG, GIF, BMP, WebP (max 10MB)</div>
       </div>
-      
+
       {error && (
         <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
           {error}
