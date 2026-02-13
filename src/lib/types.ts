@@ -66,8 +66,8 @@ export interface CreateLeasingDto {
   active: boolean;
   details?: AssetDetailDto[];
   companyId?: string;
-  reteIcaPct: number;
-  reteFuentePct: number;
+  reteIcaPct?: number;
+  reteFuentePct?: number;
 }
 
 export interface UpdateLeasingDto extends CreateLeasingDto {
