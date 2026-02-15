@@ -283,6 +283,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
               type="number"
               {...register('tokensAvailable', { required: 'Tokens Available is required', min: 0 })}
               className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="0 = todos disponibles (al crear)"
             />
             {errors.tokensAvailable && <p className="text-red-600 text-sm mt-1">{errors.tokensAvailable.message}</p>}
           </div>

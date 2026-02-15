@@ -305,13 +305,13 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
                 {...register('minCapital', {
                   required: 'Minimum capital is required',
                   min: { value: 0, message: 'Minimum capital must be >= 0' }
                 })}
                 className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0.00"
+                placeholder="e.g. 5400000 (5.4M en unidades del token, 6 decimales aplicados por el backend)"
               />
               {errors.minCapital && <p className="text-red-600 text-sm mt-1">{errors.minCapital.message}</p>}
             </div>
@@ -322,13 +322,13 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
                 {...register('maxCapital', {
                   required: 'Maximum capital is required',
                   min: { value: 0, message: 'Maximum capital must be >= 0' }
                 })}
                 className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0.00"
+                placeholder="e.g. 5400000 (mismo formato que Min Capital)"
               />
               {errors.maxCapital && <p className="text-red-600 text-sm mt-1">{errors.maxCapital.message}</p>}
             </div>
