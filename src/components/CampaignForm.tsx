@@ -46,6 +46,8 @@ interface CampaignFormData {
   endDate: string;
   installmentRate: number;
   residualValue: number;
+  leasingTokenPrice: number;
+  finalPaymentAmount: number;
   managementFee: number;
   tokensPurchased: number;
   leasingCoreAddress: string;
@@ -95,6 +97,8 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
       endDate: '',
       installmentRate: 0,
       residualValue: 0,
+      leasingTokenPrice: 0,
+      finalPaymentAmount: 0,
       managementFee: 0,
       tokensPurchased: 0,
       leasingCoreAddress: '',
@@ -128,6 +132,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
   // Auto-calculate end date based on start date and term time
   const startDate = watch('startDate');
   const termTime = watch('termTime');
+  const leasingId = watch('leasingId');
 
   useEffect(() => {
     if (startDate && termTime && termTime > 0) {
@@ -137,6 +142,12 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
       setValue('endDate', end.toISOString().split('T')[0]);
     }
   }, [startDate, termTime, setValue]);
+
+  // Al seleccionar un leasing, completar leasingTokenPrice (precio por token del activo)
+  useEffect(() => {
+    const leasing = leasings.find(l => l.id === leasingId);
+    if (leasing) setValue('leasingTokenPrice', Number(leasing.pricePerToken) || 0);
+  }, [leasingId, leasings, setValue]);
 
   // User search functionality
   const handleUserSearch = async (searchTerm: string) => {
@@ -196,6 +207,8 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
         endDate: data.endDate ? new Date(data.endDate).toISOString() : '',
         installmentRate: parseFloat(data.installmentRate.toString()),
         residualValue: parseFloat(data.residualValue.toString()),
+        leasingTokenPrice: parseFloat(data.leasingTokenPrice.toString()),
+        finalPaymentAmount: parseFloat(data.finalPaymentAmount.toString()),
         managementFee: parseFloat(data.managementFee.toString()),
         tokensPurchased: parseInt(data.tokensPurchased.toString()),
         leasingCoreAddress: data.leasingCoreAddress,
@@ -494,6 +507,30 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
                 {...register('residualValue', { min: 0 })}
                 className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Leasing Token Price</label>
+              <input
+                type="number"
+                step="0.000001"
+                {...register('leasingTokenPrice', { min: 0 })}
+                className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Precio por token (se rellena al elegir leasing)"
+              />
+              <p className="text-xs text-gray-500 mt-1">Precio por token del activo (LeasingInfo.leasingTokenPrice)</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pago final Brickle (finalPaymentAmount)</label>
+              <input
+                type="number"
+                step="0.01"
+                {...register('finalPaymentAmount', { min: 0 })}
+                className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Monto que Brickle paga al cierre"
+              />
+              <p className="text-xs text-gray-500 mt-1">Valor residual / monto que Brickle paga al final del leasing</p>
             </div>
 
             <div>

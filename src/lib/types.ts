@@ -117,6 +117,8 @@ export interface CreateUserLeasingAgreementDto {
   endDate: string;
   installmentRate: number;
   residualValue: number;
+  leasingTokenPrice?: number;
+  finalPaymentAmount?: number;
   managementFee: number;
   tokensPurchased: number;
   leasingCoreAddress: string;
