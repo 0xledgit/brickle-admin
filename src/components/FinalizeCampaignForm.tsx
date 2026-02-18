@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { CampaignDto, LeasingDto, AdminConfig } from '@/lib/types';
+import { CampaignDto, LeasingDto, AdminConfig, FinalizeCampaignResponse } from '@/lib/types';
 import { BrickleAPI } from '@/lib/api';
 
 interface FinalizeCampaignFormProps {
@@ -17,6 +17,7 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string>('');
+  const [lastResult, setLastResult] = useState<FinalizeCampaignResponse | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignDto[]>([]);
   const [leasings, setLeasings] = useState<LeasingDto[]>([]);
   const [api] = useState(() => new BrickleAPI(adminConfig));
@@ -54,6 +55,7 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
     try {
       setLoading(true);
       setError('');
+      setLastResult(null);
 
       const selectedCampaign = campaigns.find(c => c.id === data.campaignId);
       if (!selectedCampaign) {
@@ -61,8 +63,11 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
         return;
       }
 
-      // Use the brickleAddress from the selected campaign
-      await api.finalizeCampaign(selectedCampaign.id);
+      // Backend calls smart contract finalizeCampaign and persists leasingCore/token to Leasing and UserLeasingAgreement
+      const result = await api.finalizeCampaign(selectedCampaign.id, {
+        brickleAssumeInsurance: true,
+      });
+      setLastResult(result);
       onSuccess(selectedCampaign.id);
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to finalize campaign';
@@ -104,6 +109,17 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
         </div>
       )}
 
+      {lastResult && lastResult.success && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded text-green-800 text-sm">
+          <p className="font-semibold mb-2">Campaña finalizada correctamente. Direcciones actualizadas en BD:</p>
+          <p className="font-mono text-xs break-all"><strong>LeasingCore (contract_address / leasingCoreAddress):</strong> {lastResult.leasingCoreAddress}</p>
+          <p className="font-mono text-xs break-all mt-1"><strong>Token (baseToken):</strong> {lastResult.tokenAddress}</p>
+          {lastResult.transactionHash && (
+            <p className="font-mono text-xs break-all mt-1"><strong>TxHash:</strong> {lastResult.transactionHash}</p>
+          )}
+        </div>
+      )}
+
       {campaigns.length === 0 && !loadingData && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
           No active campaigns available to finalize.
@@ -116,10 +132,7 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
             <div className="text-blue-400">ℹ️</div>
             <div className="ml-3 text-sm text-blue-700">
               <p><strong>Campaign Finalization</strong></p>
-              <p>This action will finalize the selected campaign by calling the smart contract function:</p>
-              <p className="font-mono text-xs mt-2 bg-blue-100 p-2 rounded">
-                finalizeCampaign(address) on contract {process.env.NEXT_PUBLIC_THRESHOLD_FACTORY}
-              </p>
+              <p>This action calls the backend, which runs the smart contract <code>finalizeCampaign</code>, then updates <strong>Leasing.contract_address</strong> and <strong>UserLeasingAgreement.leasingCoreAddress</strong> with the addresses returned by the contract.</p>
               <p className="mt-2">Only active campaigns can be finalized. This action cannot be undone.</p>
             </div>
           </div>

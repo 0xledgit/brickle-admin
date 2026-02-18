@@ -98,6 +98,14 @@ export interface CampaignDto extends CreateCampaignDto {
   updatedAt: string;
 }
 
+/** Response from POST /api/Campaign/{id}/finalize: addresses returned by the smart contract and persisted to Leasing and UserLeasingAgreement. */
+export interface FinalizeCampaignResponse {
+  success: boolean;
+  leasingCoreAddress: string;
+  tokenAddress: string;
+  transactionHash?: string;
+}
+
 export interface CreateTokenizeAsset {
   campaign: CreateCampaignDto;
   leasing: CreateUserLeasingAgreementDto;

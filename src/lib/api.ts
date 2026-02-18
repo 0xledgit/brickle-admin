@@ -5,6 +5,7 @@ import {
   LeasingDto,
   CreateTokenizeAsset,
   CampaignDto,
+  FinalizeCampaignResponse,
   FileResponseDto,
   ContactDto,
   AdminConfig,
@@ -109,13 +110,14 @@ export class BrickleAPI {
   }
 
   async finalizeCampaign(
-    campaignId: string
-  ): Promise<{ success: boolean; message: string }> {
-    //const thresholdFactory = process.env.NEXT_PUBLIC_THRESHOLD_FACTORY;
+    campaignId: string,
+    options?: { brickleAssumeInsurance?: boolean }
+  ): Promise<FinalizeCampaignResponse> {
     const response = await axios.post(
       `${this.adminConfig.baseUrl}/api/Campaign/${campaignId}/finalize`,
       {
         userId: this.adminConfig.adminUserId,
+        brickleAssumeInsurance: options?.brickleAssumeInsurance ?? true,
       },
       {
         headers: createAPIHeaders(this.adminConfig),
