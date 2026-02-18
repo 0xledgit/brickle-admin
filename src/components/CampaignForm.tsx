@@ -192,6 +192,16 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
         brickleAddress: data.brickleAddress,
       };
 
+      // endDate requerido por la API (DateTime). Si viene vacío, derivar de startDate + termTime.
+      let endDateIso = data.endDate ? new Date(data.endDate).toISOString() : '';
+      if (!endDateIso && data.startDate && data.termTime) {
+        const start = new Date(data.startDate);
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + parseInt(data.termTime.toString(), 10));
+        endDateIso = end.toISOString();
+      }
+      if (!endDateIso) endDateIso = new Date(data.startDate).toISOString();
+
       // Format leasing agreement data
       const leasingData: CreateUserLeasingAgreementDto = {
         userId: selectedUser.id,
@@ -204,7 +214,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
         currency: data.currency,
         contractDetails: data.contractDetails,
         startDate: new Date(data.startDate).toISOString(),
-        endDate: data.endDate ? new Date(data.endDate).toISOString() : '',
+        endDate: endDateIso,
         installmentRate: parseFloat(data.installmentRate.toString()),
         residualValue: parseFloat(data.residualValue.toString()),
         leasingTokenPrice: parseFloat(data.leasingTokenPrice.toString()),
