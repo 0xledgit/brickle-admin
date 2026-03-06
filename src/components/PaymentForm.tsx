@@ -37,8 +37,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const [privateKey, setPrivateKey] = useState<string>('');
 
   // Hardcoded blockchain configuration values (MockERC20, Paymaster)
-  const tokenAddress = '0xeecA856F9Bc750ABD56E07efA9F61A3c7121926d';
-  const paymasterAddress = '0xae45308803057D7D78a4B112c6B7968d8bA8A777';
+  const tokenAddress = '0x4Bfe81712894eE79C5Cd8463FF14Fe5C73dcC0B8';
+  const paymasterAddress = '0x60794838ed4c318C956312b50725c8BA6B918490';
   // const userAddress = '0x4Ac2bb44F3a89B13A1E9ce30aBd919c40CbA4385'; // Commented out as it's unused but kept for reference
   const relayerFee = '100000';
 
