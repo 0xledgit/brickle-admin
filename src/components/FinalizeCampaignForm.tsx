@@ -65,7 +65,7 @@ export default function FinalizeCampaignForm({ adminConfig, onSuccess, onCancel 
 
       // Backend calls smart contract finalizeCampaign and persists leasingCore/token to Leasing and UserLeasingAgreement
       const result = await api.finalizeCampaign(selectedCampaign.id, {
-        brickleAssumeInsurance: true,
+        brickleAssumeInsurance: false,
       });
       setLastResult(result);
       onSuccess(selectedCampaign.id);

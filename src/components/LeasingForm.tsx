@@ -52,7 +52,8 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       discoverImageUrl: initialData.discoverImageUrl,
       companyId: initialData.companyId,
       reteIcaPct: initialData.reteIcaPct,
-      reteFuentePct: initialData.reteFuentePct
+      reteFuentePct: initialData.reteFuentePct,
+      buyerRetentionPercentage: initialData.buyerRetentionPercentage
     } : {
       name: '',
       quantity: 0,
@@ -72,7 +73,8 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
       discoverImageUrl: '',
       companyId: '',
       reteIcaPct: 0,
-      reteFuentePct: 0
+      reteFuentePct: 0,
+      buyerRetentionPercentage: 0
     }
   });
 
@@ -148,6 +150,7 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
         tir: parseFloat(data.tir.toString()),
         reteIcaPct: parseFloat((data.reteIcaPct ?? 0).toString()),
         reteFuentePct: parseFloat((data.reteFuentePct ?? 0).toString()),
+        buyerRetentionPercentage: parseFloat((data.buyerRetentionPercentage ?? 0).toString()),
         // Convert enum values to numbers
         type: parseInt(data.type.toString()) as LeasingTypeEnum,
         liquidity: parseInt(data.liquidity.toString()) as LiquidityLevelEnum,
@@ -330,6 +333,20 @@ export default function LeasingForm({ adminConfig, mode, initialData, onSuccess,
               className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.reteFuentePct && <p className="text-red-600 text-sm mt-1">{errors.reteFuentePct.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Buyer Retention (%)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              {...register('buyerRetentionPercentage')}
+              className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="% de reteFuente que retiene el comprador (base 10000 = 100%)"
+            />
+            {errors.buyerRetentionPercentage && <p className="text-red-600 text-sm mt-1">{errors.buyerRetentionPercentage.message}</p>}
           </div>
 
           <div>

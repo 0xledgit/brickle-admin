@@ -68,6 +68,7 @@ export interface CreateLeasingDto {
   companyId?: string;
   reteIcaPct?: number;
   reteFuentePct?: number;
+  buyerRetentionPercentage?: number;
 }
 
 export interface UpdateLeasingDto extends CreateLeasingDto {

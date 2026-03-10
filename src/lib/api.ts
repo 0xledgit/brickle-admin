@@ -117,7 +117,7 @@ export class BrickleAPI {
       `${this.adminConfig.baseUrl}/api/Campaign/${campaignId}/finalize`,
       {
         userId: this.adminConfig.adminUserId,
-        brickleAssumeInsurance: options?.brickleAssumeInsurance ?? true,
+        brickleAssumeInsurance: options?.brickleAssumeInsurance ?? false,
       },
       {
         headers: createAPIHeaders(this.adminConfig),
