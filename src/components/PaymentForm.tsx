@@ -37,9 +37,12 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const [signerAddress, setSignerAddress] = useState<string>('');
   const [privateKey, setPrivateKey] = useState<string>('');
 
-  // Hardcoded blockchain configuration values (MockERC20, Paymaster)
-  const tokenAddress = '0x67d9b431e066f6547DBeD86E5634EfED27E83cA9';
+  // Hardcoded blockchain configuration values (Paymaster)
+  const DEFAULT_BASE_TOKEN = '0x67d9b431e066f6547DBeD86E5634EfED27E83cA9';
   const paymasterAddress = '0xD0bB31B001A5a36066196D8839C247195A6AAf8d';
+  // Usar baseToken del acuerdo si está disponible (debe coincidir con el LeasingCore)
+  const selectedAgreementForToken = agreements.find(a => a.id === selectedAgreementId);
+  const tokenAddress = selectedAgreementForToken?.baseToken ?? DEFAULT_BASE_TOKEN;
   // const userAddress = '0x4Ac2bb44F3a89B13A1E9ce30aBd919c40CbA4385'; // Commented out as it's unused but kept for reference
   const relayerFee = '100000';
 
@@ -148,6 +151,12 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       loadContractData();
     }
   }, [selectedAgreementId, loadContractData]);
+
+  // Limpiar permit al cambiar acuerdo (el token puede ser distinto)
+  useEffect(() => {
+    setPermitSignature({ v: 0, r: '', s: '' });
+    setSignerAddress('');
+  }, [selectedAgreementId]);
 
   // Update payment amount when type changes or suggested amount loads
   useEffect(() => {

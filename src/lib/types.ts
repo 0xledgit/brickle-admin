@@ -234,6 +234,7 @@ export interface UserLeasingAgreementDto {
   managementFee: number;
   tokensPurchased: number;
   leasingCoreAddress: string;
+  baseToken?: string;
   insurancePercentage: number;
   ibrRate: number;
   riskLevel: number;
