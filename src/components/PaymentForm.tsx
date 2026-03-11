@@ -34,6 +34,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
     r: '',
     s: ''
   });
+  const [signerAddress, setSignerAddress] = useState<string>('');
   const [privateKey, setPrivateKey] = useState<string>('');
 
   // Hardcoded blockchain configuration values (MockERC20, Paymaster)
@@ -221,6 +222,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       const { v, r, s } = ethers.Signature.from(signature);
 
       setPermitSignature({ v, r, s });
+      setSignerAddress(signerAddress); // Wallet que firmó el permit - debe coincidir con sender en API
       setDeadline(newDeadline);
 
     } catch (err: unknown) {
@@ -257,7 +259,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
         userLeasingAgreementId: selectedAgreementId,
         paymentAmount,
         deadline,
-        permitSignature
+        permitSignature,
+        sender: signerAddress || undefined
       };
 
       const result = await api.createPayment(payment);

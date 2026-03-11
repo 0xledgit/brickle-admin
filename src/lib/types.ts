@@ -212,6 +212,8 @@ export interface CreatePaymentDto {
   paymentAmount: string;
   deadline: number;
   permitSignature: PermitSignature;
+  /** Dirección de la wallet que firmó el permit (debe coincidir con la private key usada) */
+  sender?: string;
 }
 
 export interface UserLeasingAgreementDto {
