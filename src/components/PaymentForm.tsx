@@ -114,7 +114,10 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
 
   const loadContractData = useCallback(async () => {
     const agreement = agreements.find(a => a.id === selectedAgreementId);
-    if (!agreement?.leasingCoreAddress) return;
+    if (!agreement?.leasingCoreAddress) {
+      setSuggestedAmount('0');
+      return;
+    }
 
     try {
       setFetchingContract(true);
@@ -130,7 +133,6 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       );
 
       const finance = await leasingContract.leasingFinance();
-      // finance.totalMonthlyPayment is a BigInt
       const amount = finance.totalMonthlyPayment.toString();
 
       setSuggestedAmount(amount);
@@ -139,12 +141,25 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       }
     } catch (err) {
       console.error('Failed to read contract:', err);
-      // Fallback or error warning? defaulting to 0 allows manual entry
-      setSuggestedAmount('0');
+      // Fallback: obtener monto esperado desde la API (evita CommitFailed)
+      try {
+        const { expectedAmount } = await api.getExpectedPaymentAmount(selectedAgreementId);
+        if (expectedAmount && expectedAmount !== '0') {
+          setSuggestedAmount(expectedAmount);
+          if (paymentType === 'suggested') {
+            setPaymentAmount(expectedAmount);
+          }
+        } else {
+          setSuggestedAmount('0');
+        }
+      } catch (apiErr) {
+        console.error('API fallback failed:', apiErr);
+        setSuggestedAmount('0');
+      }
     } finally {
       setFetchingContract(false);
     }
-  }, [agreements, selectedAgreementId, paymentType]);
+  }, [agreements, selectedAgreementId, paymentType, api]);
 
   useEffect(() => {
     if (selectedAgreementId) {

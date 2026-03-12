@@ -170,6 +170,16 @@ export class BrickleAPI {
   }
 
   // Payment endpoints
+  async getExpectedPaymentAmount(agreementId: string): Promise<{ expectedAmount: string }> {
+    const response = await axios.get(
+      `${this.adminConfig.baseUrl}/api/Payment/expected-amount/${agreementId}`,
+      {
+        headers: createAPIHeaders(this.adminConfig),
+      }
+    );
+    return response.data;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async createPayment(payment: CreatePaymentDto): Promise<any> {
     const response = await axios.post(
