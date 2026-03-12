@@ -56,8 +56,6 @@ interface CampaignFormData {
   riskLevel: number;
   riskRate: number;
   iva: number;
-  reteIcaPct: number;
-  reteFuentePct: number;
 }
 
 export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }: CampaignFormProps) {
@@ -106,9 +104,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
       ibrRate: 0,
       riskLevel: 0,
       riskRate: 0,
-      iva: 0,
-      reteIcaPct: 0,
-      reteFuentePct: 0
+      iva: 0
     }
   });
 
@@ -143,7 +139,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
     }
   }, [startDate, termTime, setValue]);
 
-  // Al seleccionar un leasing, completar leasingTokenPrice (precio por token del activo)
+  // Al seleccionar un leasing, completar leasingTokenPrice (reteIca, reteFuente, buyerRetention vienen del Leasing en API)
   useEffect(() => {
     const leasing = leasings.find(l => l.id === leasingId);
     if (leasing) setValue('leasingTokenPrice', Number(leasing.pricePerToken) || 0);
@@ -227,8 +223,6 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
         riskLevel: parseInt(data.riskLevel.toString()),
         riskRate: parseFloat(data.riskRate.toString()),
         iva: parseFloat(data.iva.toString()),
-        reteIcaPct: parseFloat(data.reteIcaPct.toString()),
-        reteFuentePct: parseFloat(data.reteFuentePct.toString()),
       };
 
       const tokenizeAsset: CreateTokenizeAsset = {
@@ -642,28 +636,6 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
                 className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="67000.056765"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">ReteICA (%)</label>
-              <input
-                type="number"
-                step="0.001"
-                {...register('reteIcaPct', { required: 'ReteICA is required' })}
-                className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {errors.reteIcaPct && <p className="text-red-600 text-sm mt-1">{errors.reteIcaPct.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">ReteFuente (%)</label>
-              <input
-                type="number"
-                step="0.001"
-                {...register('reteFuentePct', { required: 'ReteFuente is required' })}
-                className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {errors.reteFuentePct && <p className="text-red-600 text-sm mt-1">{errors.reteFuentePct.message}</p>}
             </div>
 
             <div className="md:col-span-2 lg:col-span-3">

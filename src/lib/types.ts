@@ -136,8 +136,6 @@ export interface CreateUserLeasingAgreementDto {
   riskLevel: number;
   riskRate: number;
   iva: number;
-  reteIcaPct: number;
-  reteFuentePct: number;
 }
 
 export interface AssetDetailDto {
