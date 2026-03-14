@@ -38,8 +38,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const [privateKey, setPrivateKey] = useState<string>('');
 
   // Hardcoded blockchain configuration values (Paymaster)
-  const DEFAULT_BASE_TOKEN = '0xBa09FF7fc170130CEF613373B6dcbb97B4231f8d';
-  const paymasterAddress = '0xd2F4d621eef6aD0d7c5d2CA854CC8b5eDFCD4549';
+  const DEFAULT_BASE_TOKEN = '0xc4F00e15778047c09b32920473B23F784055295f';
+  const paymasterAddress = '0x7b2d82f833d6802680b5eB9BfF348Fa01E900061';
   // Usar baseToken del acuerdo si está disponible (debe coincidir con el LeasingCore)
   const selectedAgreementForToken = agreements.find(a => a.id === selectedAgreementId);
   const tokenAddress = selectedAgreementForToken?.baseToken ?? DEFAULT_BASE_TOKEN;
