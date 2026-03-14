@@ -56,6 +56,7 @@ interface CampaignFormData {
   riskLevel: number;
   riskRate: number;
   iva: number;
+  buyerRetentionPercentage: number;
 }
 
 export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }: CampaignFormProps) {
@@ -104,7 +105,8 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
       ibrRate: 0,
       riskLevel: 0,
       riskRate: 0,
-      iva: 0
+      iva: 0,
+      buyerRetentionPercentage: 0
     }
   });
 
@@ -139,10 +141,15 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
     }
   }, [startDate, termTime, setValue]);
 
-  // Al seleccionar un leasing, completar leasingTokenPrice (reteIca, reteFuente, buyerRetention vienen del Leasing en API)
+  // Al seleccionar un leasing, completar leasingTokenPrice y buyerRetentionPercentage desde el Leasing
   useEffect(() => {
     const leasing = leasings.find(l => l.id === leasingId);
-    if (leasing) setValue('leasingTokenPrice', Number(leasing.pricePerToken) || 0);
+    if (leasing) {
+      setValue('leasingTokenPrice', Number(leasing.pricePerToken) || 0);
+      const l = leasing as LeasingDto & { agreement?: { buyerRetentionPercentage?: number } };
+      const brPct = l.agreement?.buyerRetentionPercentage ?? l.buyerRetentionPercentage ?? 0;
+      setValue('buyerRetentionPercentage', Number(brPct) || 0);
+    }
   }, [leasingId, leasings, setValue]);
 
   // User search functionality
@@ -223,6 +230,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
         riskLevel: parseInt(data.riskLevel.toString()),
         riskRate: parseFloat(data.riskRate.toString()),
         iva: parseFloat(data.iva.toString()),
+        buyerRetentionPercentage: parseFloat((data.buyerRetentionPercentage ?? 0).toString()),
       };
 
       const tokenizeAsset: CreateTokenizeAsset = {
@@ -636,6 +644,20 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
                 className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="67000.056765"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Buyer Retention % (reteFuente)</label>
+              <input
+                type="number"
+                step="0.01"
+                {...register('buyerRetentionPercentage', { min: 0, max: 100 })}
+                className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="58.9"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                % de reteFuente que retiene el comprador (base 100 = 100%). Se rellena al elegir leasing.
+              </p>
             </div>
 
             <div className="md:col-span-2 lg:col-span-3">
