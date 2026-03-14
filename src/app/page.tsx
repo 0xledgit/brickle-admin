@@ -8,6 +8,7 @@ import CampaignForm from '@/components/CampaignForm';
 import FinalizeCampaignForm from '@/components/FinalizeCampaignForm';
 import PaymentForm from '@/components/PaymentForm';
 import DocumentManagement from '@/components/DocumentManagement';
+import BrickleRechargeForm from '@/components/BrickleRechargeForm';
 
 export default function Home() {
   const [adminConfig, setAdminConfig] = useState<AdminConfig | null>(null);
@@ -16,6 +17,7 @@ export default function Home() {
   const [showFinalizeCampaignForm, setShowFinalizeCampaignForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showDocumentManagement, setShowDocumentManagement] = useState(false);
+  const [showBrickleRecharge, setShowBrickleRecharge] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
   const handleConfigSave = (config: AdminConfig) => {
@@ -45,6 +47,12 @@ export default function Home() {
   const handlePaymentSuccess = () => {
     setShowPaymentForm(false);
     setSuccessMessage(`Payment created successfully!`);
+    setTimeout(() => setSuccessMessage(''), 5000);
+  };
+
+  const handleBrickleRechargeSuccess = () => {
+    setShowBrickleRecharge(false);
+    setSuccessMessage('Cuenta Brickle recargada correctamente');
     setTimeout(() => setSuccessMessage(''), 5000);
   };
 
@@ -95,6 +103,16 @@ export default function Home() {
       <DocumentManagement
         adminConfig={adminConfig}
         onCancel={() => setShowDocumentManagement(false)}
+      />
+    );
+  }
+
+  if (showBrickleRecharge && adminConfig) {
+    return (
+      <BrickleRechargeForm
+        adminConfig={adminConfig}
+        onSuccess={handleBrickleRechargeSuccess}
+        onCancel={() => setShowBrickleRecharge(false)}
       />
     );
   }
@@ -172,6 +190,17 @@ export default function Home() {
                 <div className="text-lg font-medium text-gray-900">User Documents</div>
                 <div className="text-sm text-gray-500 text-center mt-1">
                   Review and approve user documents
+                </div>
+              </button>
+
+              <button
+                onClick={() => setShowBrickleRecharge(true)}
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-colors"
+              >
+                <div className="text-3xl mb-2">💰</div>
+                <div className="text-lg font-medium text-gray-900">Recargar Brickle</div>
+                <div className="text-sm text-gray-500 text-center mt-1">
+                  Recargar cuenta Brickle con base token (mint/transfer)
                 </div>
               </button>
             </div>
