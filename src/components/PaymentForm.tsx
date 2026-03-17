@@ -7,6 +7,9 @@ import { BrickleAPI } from '@/lib/api';
 
 const LEASING_CORE_ABI = [
   "function leasingFinance() view returns (uint256 residualValue, uint256 annualInsurance, uint256 holdersPct, uint256 buyerInterest, uint256 brickleInterest, uint256 principal, uint256 totalMonthlyPayment, uint256 monthlyRateBuyer)",
+  "function currentMonth() view returns (uint256)",
+  "function lastPaymentMade() view returns (bool)",
+  "function leasingInfo() view returns (tuple(uint256 assetValue, uint256 usefulLife, uint256 termMonths, uint256 leasingTokenPrice, uint256 monthlyRate, uint256 monthlyPayment, uint256 managementFee, uint256 insurancePct, uint256 ibrRate, uint256 riskLevel, uint256 riskRate, uint256 IVA, uint256 reteIcaPct, uint256 reteFuentePct, uint256 finalPaymentAmount, uint256 buyerRetentionPercentage))",
 ];
 
 interface PaymentFormProps {
@@ -27,6 +30,12 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const [paymentType, setPaymentType] = useState<PaymentType>('suggested');
   const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [suggestedAmount, setSuggestedAmount] = useState<string>('0');
+  const [contractState, setContractState] = useState<{
+    currentMonth: number;
+    termMonths: number;
+    isResidualPayment: boolean;
+    lastPaymentMade: boolean;
+  } | null>(null);
 
   const [deadline, setDeadline] = useState<number>(Math.floor(Date.now() / 1000) + 3600);
   const [permitSignature, setPermitSignature] = useState<PermitSignature>({
@@ -116,46 +125,82 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
     const agreement = agreements.find(a => a.id === selectedAgreementId);
     if (!agreement?.leasingCoreAddress) {
       setSuggestedAmount('0');
+      setContractState(null);
       return;
     }
 
     try {
       setFetchingContract(true);
-      // Use Alchemy provider as in other parts
+      setContractState(null);
+
+      // Prioridad: API que devuelve estado completo (currentMonth, termMonths, isResidualPayment)
+      try {
+        const apiState = await api.getExpectedPaymentAmount(selectedAgreementId);
+        if (apiState.expectedAmount && apiState.expectedAmount !== '0') {
+          setSuggestedAmount(apiState.expectedAmount);
+          if (paymentType === 'suggested') {
+            setPaymentAmount(apiState.expectedAmount);
+          }
+          if (apiState.currentMonth !== undefined && apiState.termMonths !== undefined) {
+            setContractState({
+              currentMonth: apiState.currentMonth,
+              termMonths: apiState.termMonths,
+              isResidualPayment: apiState.isResidualPayment ?? false,
+              lastPaymentMade: apiState.lastPaymentMade ?? false,
+            });
+          }
+          return;
+        }
+        if (apiState.lastPaymentMade) {
+          setContractState({
+            currentMonth: apiState.currentMonth ?? 0,
+            termMonths: apiState.termMonths ?? 0,
+            isResidualPayment: false,
+            lastPaymentMade: true,
+          });
+          setSuggestedAmount('0');
+          return;
+        }
+      } catch (apiErr) {
+        console.warn('API state failed, trying contract:', apiErr);
+      }
+
+      // Fallback: leer directamente del contrato
       const provider = new ethers.JsonRpcProvider(
         "https://polygon-amoy.g.alchemy.com/v2/zetnkpwznZk_YH-8UAoij"
       );
-
       const leasingContract = new ethers.Contract(
         agreement.leasingCoreAddress,
         LEASING_CORE_ABI,
         provider
       );
 
-      const finance = await leasingContract.leasingFinance();
-      const amount = finance.totalMonthlyPayment.toString();
+      const [finance, currentMonth, lastPaymentMade, leasingInfo] = await Promise.all([
+        leasingContract.leasingFinance(),
+        leasingContract.currentMonth(),
+        leasingContract.lastPaymentMade(),
+        leasingContract.leasingInfo(),
+      ]);
+
+      const termMonths = Number(leasingInfo.termMonths);
+      const currentMonthNum = Number(currentMonth);
+      const isResidual = lastPaymentMade === false && currentMonthNum >= termMonths && Number(finance.residualValue) > 0;
+      const amount = isResidual ? finance.residualValue.toString() : finance.totalMonthlyPayment.toString();
 
       setSuggestedAmount(amount);
       if (paymentType === 'suggested') {
         setPaymentAmount(amount);
       }
+      setContractState({
+        currentMonth: currentMonthNum,
+        termMonths,
+        isResidualPayment: isResidual,
+        lastPaymentMade: Boolean(lastPaymentMade),
+      });
     } catch (err) {
       console.error('Failed to read contract:', err);
-      // Fallback: obtener monto esperado desde la API (evita CommitFailed)
-      try {
-        const { expectedAmount } = await api.getExpectedPaymentAmount(selectedAgreementId);
-        if (expectedAmount && expectedAmount !== '0') {
-          setSuggestedAmount(expectedAmount);
-          if (paymentType === 'suggested') {
-            setPaymentAmount(expectedAmount);
-          }
-        } else {
-          setSuggestedAmount('0');
-        }
-      } catch (apiErr) {
-        console.error('API fallback failed:', apiErr);
-        setSuggestedAmount('0');
-      }
+      setSuggestedAmount('0');
+      setContractState(null);
     } finally {
       setFetchingContract(false);
     }
@@ -357,6 +402,31 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
 
           {selectedAgreement && (
             <>
+              {/* Contract State - currentMonth, termMonths, residual */}
+              {contractState && (
+                <div className={`rounded-lg p-4 mb-4 ${
+                  contractState.lastPaymentMade
+                    ? 'bg-green-50 border border-green-200'
+                    : contractState.isResidualPayment
+                      ? 'bg-amber-50 border border-amber-200'
+                      : 'bg-blue-50 border border-blue-200'
+                }`}>
+                  <h3 className="font-medium text-gray-900 mb-2">Estado del contrato LeasingCore</h3>
+                  {contractState.lastPaymentMade ? (
+                    <p className="text-green-800">✓ Todos los pagos completados (incluido valor residual). No hay más pagos pendientes.</p>
+                  ) : contractState.isResidualPayment ? (
+                    <p className="text-amber-800">
+                      <strong>Pago residual pendiente:</strong> Cuota {contractState.currentMonth} de {contractState.termMonths}.
+                      Ejecute <strong>makeLastLeasingPayment</strong> con el valor residual.
+                    </p>
+                  ) : (
+                    <p className="text-blue-800">
+                      Cuota {contractState.currentMonth + 1} de {contractState.termMonths} (cuota mensual)
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Payment Type Selection */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -365,15 +435,18 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                     value={paymentType}
                     onChange={(e) => setPaymentType(e.target.value as PaymentType)}
                     className="w-full px-3 py-2 border border-blue-200 bg-blue-50 rounded-md text-gray-900"
+                    disabled={contractState?.lastPaymentMade}
                   >
-                    <option value="suggested">Suggested Monthly Payment</option>
+                    <option value="suggested">
+                      {contractState?.isResidualPayment ? 'Pago residual (última cuota)' : 'Suggested Monthly Payment'}
+                    </option>
                     <option value="custom">Custom Amount</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Amount {paymentType === 'suggested' && '(Auto-fetched)'}
+                    {contractState?.isResidualPayment ? 'Valor residual' : 'Payment Amount'} {paymentType === 'suggested' && '(Auto-fetched)'}
                   </label>
                   <div className="relative">
                     <input
@@ -397,7 +470,15 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
 
               {paymentType === 'suggested' && (
                 <p className="text-xs text-gray-500">
-                  This amount is read directly from the smart contract ({selectedAgreement.leasingCoreAddress}).
+                  {contractState?.isResidualPayment
+                    ? 'Este es el valor residual del contrato. El mismo endpoint de pago ejecutará makeLastLeasingPayment cuando el relayer detecte que es la última cuota.'
+                    : `This amount is read directly from the smart contract (${selectedAgreement.leasingCoreAddress}).`}
+                </p>
+              )}
+
+              {contractState?.lastPaymentMade && (
+                <p className="text-sm text-amber-600 font-medium">
+                  El formulario está deshabilitado: no hay pagos pendientes.
                 </p>
               )}
 
@@ -422,7 +503,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                     <button
                       type="button"
                       onClick={generatePermit}
-                      disabled={generatingPermit || !privateKey || !paymentAmount || isPermitSigned}
+                      disabled={generatingPermit || !privateKey || !paymentAmount || isPermitSigned || contractState?.lastPaymentMade}
                       className={`px-4 py-2 rounded-md text-white font-medium ${isPermitSigned
                         ? 'bg-green-500 cursor-default'
                         : 'bg-indigo-600 hover:bg-indigo-700'
@@ -444,10 +525,14 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               <div className="flex justify-end pt-4">
                 <button
                   type="submit"
-                  disabled={loading || !isPermitSigned}
+                  disabled={loading || !isPermitSigned || contractState?.lastPaymentMade}
                   className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Processing Payment...' : 'Submit Payment'}
+                  {loading
+                    ? (contractState?.isResidualPayment ? 'Procesando pago residual...' : 'Processing Payment...')
+                    : contractState?.isResidualPayment
+                      ? 'Ejecutar makeLastLeasingPayment'
+                      : 'Submit Payment'}
                 </button>
               </div>
             </>

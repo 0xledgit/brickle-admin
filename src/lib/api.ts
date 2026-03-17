@@ -170,7 +170,13 @@ export class BrickleAPI {
   }
 
   // Payment endpoints
-  async getExpectedPaymentAmount(agreementId: string): Promise<{ expectedAmount: string }> {
+  async getExpectedPaymentAmount(agreementId: string): Promise<{
+    expectedAmount: string;
+    isResidualPayment?: boolean;
+    currentMonth?: number;
+    termMonths?: number;
+    lastPaymentMade?: boolean;
+  }> {
     const response = await axios.get(
       `${this.adminConfig.baseUrl}/api/Payment/expected-amount/${agreementId}`,
       {
