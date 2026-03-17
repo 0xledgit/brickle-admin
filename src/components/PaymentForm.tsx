@@ -30,6 +30,15 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const [paymentType, setPaymentType] = useState<PaymentType>('suggested');
   const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [suggestedAmount, setSuggestedAmount] = useState<string>('0');
+  const [verifyByAddressResult, setVerifyByAddressResult] = useState<{
+    residualValue?: string;
+    finalPaymentAmount?: string;
+    expectedAmount?: string;
+    currentMonth?: number;
+    termMonths?: number;
+    isResidualPayment?: boolean;
+    lastPaymentMade?: boolean;
+  } | null>(null);
   const [contractState, setContractState] = useState<{
     currentMonth: number;
     termMonths: number;
@@ -122,6 +131,29 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       setError('');
     }
   }, [selectedLeasingId, loadAgreements]);
+
+  const loadContractStateByAddress = useCallback(async (leasingCoreAddress: string) => {
+    try {
+      setFetchingContract(true);
+      setError('');
+      setVerifyByAddressResult(null);
+      const apiState = await api.getLeasingStateByAddress(leasingCoreAddress);
+      setVerifyByAddressResult({
+        residualValue: apiState.residualValue,
+        finalPaymentAmount: apiState.finalPaymentAmount,
+        expectedAmount: apiState.expectedAmount,
+        currentMonth: apiState.currentMonth,
+        termMonths: apiState.termMonths,
+        isResidualPayment: apiState.isResidualPayment,
+        lastPaymentMade: apiState.lastPaymentMade,
+      });
+    } catch (err) {
+      console.error('Failed to load state by address:', err);
+      setError('No se pudo cargar el estado del contrato. Verifique la dirección y que la API esté disponible.');
+    } finally {
+      setFetchingContract(false);
+    }
+  }, [api]);
 
   const loadContractData = useCallback(async () => {
     const agreement = agreements.find(a => a.id === selectedAgreementId);
@@ -406,6 +438,48 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
             </div>
           )}
 
+          {/* Verificación por dirección de LeasingCore (útil para debugging) */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="font-medium text-gray-700 mb-2">Verificar estado por dirección de contrato</h3>
+            <p className="text-xs text-gray-500 mb-2">Ingrese la dirección del LeasingCore (ej. 0x96a0a0f96785e804ec9d5134e16afa7e4ced2670) para consultar residualValue y finalPaymentAmount directamente del contrato.</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="0x96a0a0f96785e804ec9d5134e16afa7e4ced2670"
+                id="leasing-core-verify"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white text-sm font-mono"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const input = document.getElementById('leasing-core-verify') as HTMLInputElement;
+                    const addr = input?.value?.trim();
+                    if (addr?.startsWith('0x')) loadContractStateByAddress(addr);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById('leasing-core-verify') as HTMLInputElement;
+                  const addr = input?.value?.trim();
+                  if (addr?.startsWith('0x')) loadContractStateByAddress(addr);
+                }}
+                disabled={fetchingContract}
+                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm disabled:opacity-50"
+              >
+                {fetchingContract ? 'Cargando...' : 'Verificar'}
+              </button>
+            </div>
+            {verifyByAddressResult && (
+              <div className="mt-3 p-3 bg-white rounded border border-gray-200 text-sm space-y-1">
+                <p><strong>residualValue (leasingFinance):</strong> {verifyByAddressResult.residualValue ?? '—'}</p>
+                <p><strong>finalPaymentAmount (leasingInfo):</strong> {verifyByAddressResult.finalPaymentAmount ?? '—'}</p>
+                <p><strong>Monto a pagar (expectedAmount):</strong> {verifyByAddressResult.expectedAmount ?? '—'}</p>
+                <p><strong>Estado:</strong> Cuota {verifyByAddressResult.currentMonth ?? '—'} de {verifyByAddressResult.termMonths ?? '—'}, último pago: {verifyByAddressResult.lastPaymentMade ? 'Sí' : 'No'}</p>
+              </div>
+            )}
+          </div>
+
           {selectedAgreement && (
             <>
               {/* Contract State - currentMonth, termMonths, residual */}
@@ -426,10 +500,13 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                         <strong>Pago residual pendiente:</strong> Cuota {contractState.currentMonth} de {contractState.termMonths}.
                         Ejecute <strong>makeLastLeasingPayment</strong> con el valor residual.
                       </p>
-                      <div className="mt-2 pt-2 border-t border-amber-200 text-sm">
-                        <p><strong>Valor residual (a pagar):</strong> {contractState.residualValue ?? '—'}</p>
-                        <p><strong>Final payment amount (incentivo):</strong> {contractState.finalPaymentAmount ?? '—'}</p>
-                        <p className="text-amber-900 mt-1">El cliente recibe: residual + finalPaymentAmount. El monto a pagar es el valor residual.</p>
+                      <div className="mt-2 pt-2 border-t border-amber-200 text-sm space-y-1">
+                        <p><strong>Valor residual (a pagar):</strong> {contractState.residualValue ?? '—'} <span className="text-amber-700">(leasingFinance.residualValue)</span></p>
+                        <p><strong>Final payment amount (incentivo):</strong> {contractState.finalPaymentAmount ?? '—'} <span className="text-amber-700">(leasingInfo.finalPaymentAmount)</span></p>
+                        <p className="text-amber-900 mt-1">El monto a pagar en makeLastLeasingPayment es siempre <strong>residualValue</strong>. El cliente recibe: residualValue + finalPaymentAmount.</p>
+                        {contractState.residualValue === contractState.finalPaymentAmount && (
+                          <p className="text-amber-800 italic mt-1">Cuando finalPaymentAmount fue configurado en la campaña, el contrato usa ese valor para ambos. Por eso pueden coincidir.</p>
+                        )}
                       </div>
                     </div>
                   ) : (

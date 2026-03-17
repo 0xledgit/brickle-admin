@@ -170,6 +170,25 @@ export class BrickleAPI {
   }
 
   // Payment endpoints
+  async getLeasingStateByAddress(leasingCoreAddress: string): Promise<{
+    expectedAmount: string;
+    isResidualPayment?: boolean;
+    currentMonth?: number;
+    termMonths?: number;
+    lastPaymentMade?: boolean;
+    residualValue?: string;
+    finalPaymentAmount?: string;
+  }> {
+    const response = await axios.get(
+      `${this.adminConfig.baseUrl}/api/Payment/leasing-state`,
+      {
+        params: { address: leasingCoreAddress },
+        headers: createAPIHeaders(this.adminConfig),
+      }
+    );
+    return response.data;
+  }
+
   async getExpectedPaymentAmount(agreementId: string): Promise<{
     expectedAmount: string;
     isResidualPayment?: boolean;
