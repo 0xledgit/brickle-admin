@@ -35,6 +35,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
     termMonths: number;
     isResidualPayment: boolean;
     lastPaymentMade: boolean;
+    residualValue?: string;
+    finalPaymentAmount?: string;
   } | null>(null);
 
   const [deadline, setDeadline] = useState<number>(Math.floor(Date.now() / 1000) + 3600);
@@ -147,6 +149,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               termMonths: apiState.termMonths,
               isResidualPayment: apiState.isResidualPayment ?? false,
               lastPaymentMade: apiState.lastPaymentMade ?? false,
+              residualValue: apiState.residualValue,
+              finalPaymentAmount: apiState.finalPaymentAmount,
             });
           }
           return;
@@ -196,6 +200,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
         termMonths,
         isResidualPayment: isResidual,
         lastPaymentMade: Boolean(lastPaymentMade),
+        residualValue: isResidual ? finance.residualValue.toString() : undefined,
+        finalPaymentAmount: isResidual ? leasingInfo.finalPaymentAmount.toString() : undefined,
       });
     } catch (err) {
       console.error('Failed to read contract:', err);
@@ -415,10 +421,17 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                   {contractState.lastPaymentMade ? (
                     <p className="text-green-800">✓ Todos los pagos completados (incluido valor residual). No hay más pagos pendientes.</p>
                   ) : contractState.isResidualPayment ? (
-                    <p className="text-amber-800">
-                      <strong>Pago residual pendiente:</strong> Cuota {contractState.currentMonth} de {contractState.termMonths}.
-                      Ejecute <strong>makeLastLeasingPayment</strong> con el valor residual.
-                    </p>
+                    <div className="text-amber-800 space-y-2">
+                      <p>
+                        <strong>Pago residual pendiente:</strong> Cuota {contractState.currentMonth} de {contractState.termMonths}.
+                        Ejecute <strong>makeLastLeasingPayment</strong> con el valor residual.
+                      </p>
+                      <div className="mt-2 pt-2 border-t border-amber-200 text-sm">
+                        <p><strong>Valor residual (a pagar):</strong> {contractState.residualValue ?? '—'}</p>
+                        <p><strong>Final payment amount (incentivo):</strong> {contractState.finalPaymentAmount ?? '—'}</p>
+                        <p className="text-amber-900 mt-1">El cliente recibe: residual + finalPaymentAmount. El monto a pagar es el valor residual.</p>
+                      </div>
+                    </div>
                   ) : (
                     <p className="text-blue-800">
                       Cuota {contractState.currentMonth + 1} de {contractState.termMonths} (cuota mensual)
@@ -446,7 +459,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {contractState?.isResidualPayment ? 'Valor residual' : 'Payment Amount'} {paymentType === 'suggested' && '(Auto-fetched)'}
+                    {contractState?.isResidualPayment ? 'Valor residual (a pagar - makeLastLeasingPayment)' : 'Payment Amount'} {paymentType === 'suggested' && '(Auto-fetched)'}
                   </label>
                   <div className="relative">
                     <input

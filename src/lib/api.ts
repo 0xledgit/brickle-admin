@@ -176,6 +176,8 @@ export class BrickleAPI {
     currentMonth?: number;
     termMonths?: number;
     lastPaymentMade?: boolean;
+    residualValue?: string;
+    finalPaymentAmount?: string;
   }> {
     const response = await axios.get(
       `${this.adminConfig.baseUrl}/api/Payment/expected-amount/${agreementId}`,
