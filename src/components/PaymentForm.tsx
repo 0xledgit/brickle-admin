@@ -353,6 +353,23 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
       return;
     }
 
+    if (contractState?.isResidualPayment) {
+      try {
+        setLoading(true);
+        setError('');
+        const result = await api.finalizeResidualPayment({
+          userLeasingAgreementId: selectedAgreementId,
+        });
+        onSuccess(result);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setError(`No se pudo ejecutar el pago residual: ${errorMessage}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!permitSignature.r || !permitSignature.s) {
       setError('Please sign the transaction first');
       return;
@@ -382,6 +399,13 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
 
   const selectedAgreement = agreements.find(a => a.id === selectedAgreementId);
   const isPermitSigned = permitSignature.r !== '' && permitSignature.s !== '';
+  const needsPermit = contractState?.isResidualPayment !== true;
+  const submitDisabled =
+    loading ||
+    !selectedAgreementId ||
+    Boolean(contractState?.lastPaymentMade) ||
+    fetchingContract ||
+    (needsPermit && !isPermitSigned);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -561,7 +585,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               {paymentType === 'suggested' && (
                 <p className="text-xs text-gray-500">
                   {contractState?.isResidualPayment
-                    ? 'Este es el valor residual del contrato. El mismo endpoint de pago ejecutará makeLastLeasingPayment cuando el relayer detecte que es la última cuota.'
+                    ? 'Valor residual del contrato. Al enviar, la API firma en servidor (WalletPrivateKey) y llama makeLastLeasingPayment; no se usa permit ni Paymaster.'
                     : `This amount is read directly from the smart contract (${selectedAgreement.leasingCoreAddress}).`}
                 </p>
               )}
@@ -572,50 +596,59 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                 </p>
               )}
 
-              {/* Signing Section */}
+              {/* Signing Section (solo cuotas mensuales; residual firma el backend) */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Authorization</h3>
 
-                <div className="bg-gray-50 p-4 rounded-md space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Private Key (for signing)</label>
-                    <input
-                      type="password"
-                      value={privateKey}
-                      onChange={(e) => setPrivateKey(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                      placeholder="Enter private key to sign permit"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">This key is used locally to generate the permit signature.</p>
+                {contractState?.isResidualPayment ? (
+                  <div className="bg-sky-50 border border-sky-200 p-4 rounded-md text-sm text-sky-900">
+                    <p className="font-medium">Pago residual</p>
+                    <p className="mt-1">
+                      No necesita permit en el navegador. La API ejecuta <code className="text-xs bg-sky-100 px-1 rounded">POST /api/Payment/finalize-residual</code> y firma con la clave del servidor.
+                    </p>
                   </div>
+                ) : (
+                  <div className="bg-gray-50 p-4 rounded-md space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Private Key (for signing)</label>
+                      <input
+                        type="password"
+                        value={privateKey}
+                        onChange={(e) => setPrivateKey(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                        placeholder="Enter private key to sign permit"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">This key is used locally to generate the permit signature.</p>
+                    </div>
 
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={generatePermit}
-                      disabled={generatingPermit || !privateKey || !paymentAmount || isPermitSigned || contractState?.lastPaymentMade}
-                      className={`px-4 py-2 rounded-md text-white font-medium ${isPermitSigned
-                        ? 'bg-green-500 cursor-default'
-                        : 'bg-indigo-600 hover:bg-indigo-700'
-                        }`}
-                    >
-                      {generatingPermit ? 'Signing...' : isPermitSigned ? '✓ Signed Successfully' : 'Sign Permit'}
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={generatePermit}
+                        disabled={generatingPermit || !privateKey || !paymentAmount || isPermitSigned || contractState?.lastPaymentMade}
+                        className={`px-4 py-2 rounded-md text-white font-medium ${isPermitSigned
+                          ? 'bg-green-500 cursor-default'
+                          : 'bg-indigo-600 hover:bg-indigo-700'
+                          }`}
+                      >
+                        {generatingPermit ? 'Signing...' : isPermitSigned ? '✓ Signed Successfully' : 'Sign Permit'}
+                      </button>
 
-                    {isPermitSigned && (
-                      <span className="text-sm text-green-700 font-medium px-3 py-1 bg-green-100 rounded-full">
-                        Ready to Submit
-                      </span>
-                    )}
+                      {isPermitSigned && (
+                        <span className="text-sm text-green-700 font-medium px-3 py-1 bg-green-100 rounded-full">
+                          Ready to Submit
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Submit Button */}
               <div className="flex justify-end pt-4">
                 <button
                   type="submit"
-                  disabled={loading || !isPermitSigned || contractState?.lastPaymentMade}
+                  disabled={submitDisabled}
                   className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading

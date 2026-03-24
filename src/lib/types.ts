@@ -215,6 +215,13 @@ export interface CreatePaymentDto {
   sender?: string;
 }
 
+/** Pago final (residual): la API firma en servidor; no requiere permit. */
+export interface FinalizeResidualPaymentDto {
+  userLeasingAgreementId: string;
+  /** Opcional; por defecto la wallet del usuario del acuerdo */
+  clientAddress?: string;
+}
+
 export interface UserLeasingAgreementDto {
   id: string;
   userId: string;

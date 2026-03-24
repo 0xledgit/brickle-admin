@@ -10,6 +10,7 @@ import {
   ContactDto,
   AdminConfig,
   CreatePaymentDto,
+  FinalizeResidualPaymentDto,
   UserLeasingAgreementDto,
   CreateCompanyDto,
   CompanyDto,
@@ -212,6 +213,18 @@ export class BrickleAPI {
     const response = await axios.post(
       `${this.adminConfig.baseUrl}/api/Payment`,
       payment,
+      {
+        headers: createAPIHeaders(this.adminConfig),
+      }
+    );
+    return response.data;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async finalizeResidualPayment(body: FinalizeResidualPaymentDto): Promise<any> {
+    const response = await axios.post(
+      `${this.adminConfig.baseUrl}/api/Payment/finalize-residual`,
+      body,
       {
         headers: createAPIHeaders(this.adminConfig),
       }
