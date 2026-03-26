@@ -58,8 +58,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const [privateKey, setPrivateKey] = useState<string>('');
 
   // Hardcoded blockchain configuration values (Paymaster)
-  const DEFAULT_BASE_TOKEN = '0xcc60c81495695d4C0a56f71417183F651688AB2e';
-  const paymasterAddress = '0x71E068B7e46981295abf62c8210e2Ff06AFE1A28';
+  const DEFAULT_BASE_TOKEN = '0xb922CC35F612aF80a515a66e4Da6223194063c29';
+  const paymasterAddress = '0x26191Ff01B08909a97222B58FFf72aaAa041e1FF';
   // Usar baseToken del acuerdo si está disponible (debe coincidir con el LeasingCore)
   const selectedAgreementForToken = agreements.find(a => a.id === selectedAgreementId);
   const tokenAddress = selectedAgreementForToken?.baseToken ?? DEFAULT_BASE_TOKEN;
@@ -527,7 +527,12 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                       <div className="mt-2 pt-2 border-t border-amber-200 text-sm space-y-1">
                         <p><strong>Valor residual (a pagar):</strong> {contractState.residualValue ?? '—'} <span className="text-amber-700">(leasingFinance.residualValue)</span></p>
                         <p><strong>Final payment amount (incentivo):</strong> {contractState.finalPaymentAmount ?? '—'} <span className="text-amber-700">(leasingInfo.finalPaymentAmount)</span></p>
-                        <p className="text-amber-900 mt-1">El monto a pagar en makeLastLeasingPayment es siempre <strong>residualValue</strong>. El cliente recibe: residualValue + finalPaymentAmount.</p>
+                        <p className="text-amber-900 mt-1">
+                          Tras <strong>makeLastLeasingPayment</strong>, el contrato acumula <strong>residualValue + finalPaymentAmount</strong> en el saldo reclamable de cada tokenholder (igual que las cuotas). El argumento <code className="text-xs">amount</code> debe ser exactamente <strong>residualValue</strong>. <code className="text-xs">clientAddress</code> es referencia para la API, sin transfer on-chain de ese cierre.
+                        </p>
+                        <p className="text-amber-900">
+                          En la app, «Valor por reclamar» debe mostrar la suma del cierre hasta que reclamen (mismo botón que las cuotas).
+                        </p>
                         {contractState.residualValue === contractState.finalPaymentAmount && (
                           <p className="text-amber-800 italic mt-1">Cuando finalPaymentAmount fue configurado en la campaña, el contrato usa ese valor para ambos. Por eso pueden coincidir.</p>
                         )}
@@ -585,7 +590,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               {paymentType === 'suggested' && (
                 <p className="text-xs text-gray-500">
                   {contractState?.isResidualPayment
-                    ? 'Valor residual del contrato. Al enviar, la API firma en servidor (WalletPrivateKey) y llama makeLastLeasingPayment; no se usa permit ni Paymaster.'
+                    ? 'Valor residual del contrato. Al enviar, la API firma en servidor (WalletPrivateKey) para gas; el LeasingCore acredita residual + incentivo final a inversores para reclamar. No se usa permit ni Paymaster en el navegador.'
                     : `This amount is read directly from the smart contract (${selectedAgreement.leasingCoreAddress}).`}
                 </p>
               )}
@@ -601,10 +606,13 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Authorization</h3>
 
                 {contractState?.isResidualPayment ? (
-                  <div className="bg-sky-50 border border-sky-200 p-4 rounded-md text-sm text-sky-900">
+                  <div className="bg-sky-50 border border-sky-200 p-4 rounded-md text-sm text-sky-900 space-y-2">
                     <p className="font-medium">Pago residual</p>
-                    <p className="mt-1">
-                      No necesita permit en el navegador. La API ejecuta <code className="text-xs bg-sky-100 px-1 rounded">POST /api/Payment/finalize-residual</code> y firma con la clave del servidor.
+                    <p>
+                      No introduzca private key aquí (riesgo de seguridad). La API ejecuta <code className="text-xs bg-sky-100 px-1 rounded">POST /api/Payment/finalize-residual</code> usando <code className="text-xs bg-sky-100 px-1 rounded">Web3Settings:WalletPrivateKey</code> en el servidor (wallet de operaciones con gas nativo).
+                    </p>
+                    <p>
+                      Esa firma cubre <strong>gas</strong>. El contrato acumula <strong>residual + incentivo final</strong> para tokenholders; lo reclaman en la app igual que cada cuota.
                     </p>
                   </div>
                 ) : (
