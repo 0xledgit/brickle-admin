@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { ethers } from 'ethers';
 import { AdminConfig } from '@/lib/types';
 
-const DEFAULT_BASE_TOKEN = '0xfBafC680aECC79Eb595820C01F3D7894C2d7EdCB';
+import { AMOY_MOCK_ERC20 } from '@/lib/amoyContracts';
+
+const DEFAULT_BASE_TOKEN = AMOY_MOCK_ERC20;
 const BRICKLE_ADDRESS = '0xB818f59e7D46b5F17CfE66ef42cd01155a052e7C';
 const RPC_URL = 'https://polygon-amoy.drpc.org';
 

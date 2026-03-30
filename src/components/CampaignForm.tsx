@@ -14,6 +14,7 @@ import {
   ContactDto
 } from '@/lib/types';
 import { BrickleAPI } from '@/lib/api';
+import { AMOY_MOCK_ERC20 } from '@/lib/amoyContracts';
 import UserAutocomplete from './UserAutocomplete';
 
 interface CampaignFormProps {
@@ -80,7 +81,7 @@ export default function CampaignForm({ adminConfig, mode, onSuccess, onCancel }:
       minCapital: 0,
       maxCapital: 0,
       status: CampaignStatusEnum.Active,
-      baseToken: '',
+      baseToken: AMOY_MOCK_ERC20,
       brickleAddress: '',
 
       // Leasing Agreement defaults

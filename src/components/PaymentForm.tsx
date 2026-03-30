@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ethers } from 'ethers';
 import { AdminConfig, LeasingDto, UserLeasingAgreementDto, CreatePaymentDto, PermitSignature } from '@/lib/types';
 import { BrickleAPI } from '@/lib/api';
+import { AMOY_MOCK_ERC20, AMOY_PAYMASTER } from '@/lib/amoyContracts';
 
 const LEASING_CORE_ABI = [
   "function leasingFinance() view returns (uint256 residualValue, uint256 annualInsurance, uint256 holdersPct, uint256 buyerInterest, uint256 brickleInterest, uint256 principal, uint256 totalMonthlyPayment, uint256 monthlyRateBuyer)",
@@ -57,9 +58,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
   const [signerAddress, setSignerAddress] = useState<string>('');
   const [privateKey, setPrivateKey] = useState<string>('');
 
-  // Hardcoded blockchain configuration values (Paymaster)
-  const DEFAULT_BASE_TOKEN = '0xfBafC680aECC79Eb595820C01F3D7894C2d7EdCB';
-  const paymasterAddress = '0xCbeb85BD1ceE6C90Ac0F5Ce5Bb7d2c4A5d6fe9F3';
+  const DEFAULT_BASE_TOKEN = AMOY_MOCK_ERC20;
+  const paymasterAddress = AMOY_PAYMASTER;
   // Usar baseToken del acuerdo si está disponible (debe coincidir con el LeasingCore)
   const selectedAgreementForToken = agreements.find(a => a.id === selectedAgreementId);
   const tokenAddress = selectedAgreementForToken?.baseToken ?? DEFAULT_BASE_TOKEN;
