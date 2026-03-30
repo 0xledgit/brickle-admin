@@ -10,8 +10,11 @@ const LEASING_CORE_ABI = [
   "function leasingFinance() view returns (uint256 residualValue, uint256 annualInsurance, uint256 holdersPct, uint256 buyerInterest, uint256 brickleInterest, uint256 principal, uint256 totalMonthlyPayment, uint256 monthlyRateBuyer)",
   "function currentMonth() view returns (uint256)",
   "function lastPaymentMade() view returns (bool)",
+  "function leasingToken() view returns (address)",
   "function leasingInfo() view returns (tuple(uint256 assetValue, uint256 usefulLife, uint256 termMonths, uint256 leasingTokenPrice, uint256 monthlyRate, uint256 monthlyPayment, uint256 managementFee, uint256 insurancePct, uint256 ibrRate, uint256 riskLevel, uint256 riskRate, uint256 IVA, uint256 reteIcaPct, uint256 reteFuentePct, uint256 finalPaymentAmount, uint256 buyerRetentionPercentage))",
 ];
+
+const ERC20_TOTAL_SUPPLY_ABI = ['function totalSupply() view returns (uint256)'];
 
 interface PaymentFormProps {
   adminConfig: AdminConfig;
@@ -39,6 +42,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
     termMonths?: number;
     isResidualPayment?: boolean;
     lastPaymentMade?: boolean;
+    leasingTokenAddress?: string;
+    leasingTokenTotalSupply?: string;
   } | null>(null);
   const [contractState, setContractState] = useState<{
     currentMonth: number;
@@ -47,6 +52,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
     lastPaymentMade: boolean;
     residualValue?: string;
     finalPaymentAmount?: string;
+    leasingTokenAddress?: string;
+    leasingTokenTotalSupply?: string;
   } | null>(null);
 
   const [deadline, setDeadline] = useState<number>(Math.floor(Date.now() / 1000) + 3600);
@@ -146,6 +153,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
         termMonths: apiState.termMonths,
         isResidualPayment: apiState.isResidualPayment,
         lastPaymentMade: apiState.lastPaymentMade,
+        leasingTokenAddress: apiState.leasingTokenAddress,
+        leasingTokenTotalSupply: apiState.leasingTokenTotalSupply,
       });
     } catch (err) {
       console.error('Failed to load state by address:', err);
@@ -183,6 +192,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
               lastPaymentMade: apiState.lastPaymentMade ?? false,
               residualValue: apiState.residualValue,
               finalPaymentAmount: apiState.finalPaymentAmount,
+              leasingTokenAddress: apiState.leasingTokenAddress,
+              leasingTokenTotalSupply: apiState.leasingTokenTotalSupply,
             });
           }
           return;
@@ -193,6 +204,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
             termMonths: apiState.termMonths ?? 0,
             isResidualPayment: false,
             lastPaymentMade: true,
+            leasingTokenAddress: apiState.leasingTokenAddress,
+            leasingTokenTotalSupply: apiState.leasingTokenTotalSupply,
           });
           setSuggestedAmount('0');
           return;
@@ -211,12 +224,16 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
         provider
       );
 
-      const [finance, currentMonth, lastPaymentMade, leasingInfo] = await Promise.all([
+      const [finance, currentMonth, lastPaymentMade, leasingInfo, leasingTokenAddr] = await Promise.all([
         leasingContract.leasingFinance(),
         leasingContract.currentMonth(),
         leasingContract.lastPaymentMade(),
         leasingContract.leasingInfo(),
+        leasingContract.leasingToken(),
       ]);
+
+      const ltContract = new ethers.Contract(leasingTokenAddr, ERC20_TOTAL_SUPPLY_ABI, provider);
+      const leasingTokenTotalSupply = (await ltContract.totalSupply()).toString();
 
       const termMonths = Number(leasingInfo.termMonths);
       const currentMonthNum = Number(currentMonth);
@@ -234,6 +251,8 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
         lastPaymentMade: Boolean(lastPaymentMade),
         residualValue: isResidual ? finance.residualValue.toString() : undefined,
         finalPaymentAmount: isResidual ? leasingInfo.finalPaymentAmount.toString() : undefined,
+        leasingTokenAddress: leasingTokenAddr,
+        leasingTokenTotalSupply,
       });
     } catch (err) {
       console.error('Failed to read contract:', err);
@@ -465,7 +484,7 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
           {/* Verificación por dirección de LeasingCore (útil para debugging) */}
           <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <h3 className="font-medium text-gray-700 mb-2">Verificar estado por dirección de contrato</h3>
-            <p className="text-xs text-gray-500 mb-2">Ingrese la dirección del LeasingCore (ej. 0x96a0a0f96785e804ec9d5134e16afa7e4ced2670) para consultar residualValue y finalPaymentAmount directamente del contrato.</p>
+            <p className="text-xs text-gray-500 mb-2">Dirección del LeasingCore: la API devuelve residual/incentivo y el <strong>totalSupply del LeasingToken</strong> (participación). Eso no es el saldo del token base (COP) dentro del Core: son dos lecturas distintas en cadena.</p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -499,7 +518,14 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                 <p><strong>residualValue (leasingFinance):</strong> {verifyByAddressResult.residualValue ?? '—'}</p>
                 <p><strong>finalPaymentAmount (leasingInfo):</strong> {verifyByAddressResult.finalPaymentAmount ?? '—'}</p>
                 <p><strong>Monto a pagar (expectedAmount):</strong> {verifyByAddressResult.expectedAmount ?? '—'}</p>
+                <p><strong>LeasingToken:</strong> <span className="font-mono text-xs break-all">{verifyByAddressResult.leasingTokenAddress ?? '—'}</span></p>
+                <p><strong>LeasingToken totalSupply (raw):</strong> {verifyByAddressResult.leasingTokenTotalSupply ?? '—'}</p>
                 <p><strong>Estado:</strong> Cuota {verifyByAddressResult.currentMonth ?? '—'} de {verifyByAddressResult.termMonths ?? '—'}, último pago: {verifyByAddressResult.lastPaymentMade ? 'Sí' : 'No'}</p>
+                {verifyByAddressResult.isResidualPayment && verifyByAddressResult.leasingTokenTotalSupply === '0' && (
+                  <p className="text-red-800 bg-red-50 border border-red-200 rounded p-2 mt-2">
+                    totalSupply del LeasingToken es 0: <code>makeLastLeasingPayment</code> revertirá («No leasing token supply»). El saldo alto del token base en el Core no corrige esto.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -533,6 +559,16 @@ export default function PaymentForm({ adminConfig, onSuccess, onCancel }: Paymen
                         <p className="text-amber-900">
                           En la app, «Valor por reclamar» debe mostrar la suma del cierre hasta que reclamen (mismo botón que las cuotas).
                         </p>
+                        <p className="text-sm text-amber-900">
+                          <strong>LeasingToken</strong> <span className="font-mono text-xs break-all">{contractState.leasingTokenAddress ?? '—'}</span>
+                          {' · '}
+                          <strong>totalSupply (raw):</strong> {contractState.leasingTokenTotalSupply ?? '—'}
+                        </p>
+                        {contractState.leasingTokenTotalSupply === '0' && (
+                          <p className="text-red-800 bg-red-50 border border-red-200 rounded p-2 text-sm">
+                            Con totalSupply 0 el cierre on-chain falla: antes funcionaba porque aún había tokens en circulación. Tras quemar todo el supply, hay que cerrar antes de la quema total o cambiar el contrato.
+                          </p>
+                        )}
                         {contractState.residualValue === contractState.finalPaymentAmount && (
                           <p className="text-amber-800 italic mt-1">Cuando finalPaymentAmount fue configurado en la campaña, el contrato usa ese valor para ambos. Por eso pueden coincidir.</p>
                         )}

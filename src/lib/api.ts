@@ -179,6 +179,10 @@ export class BrickleAPI {
     lastPaymentMade?: boolean;
     residualValue?: string;
     finalPaymentAmount?: string;
+    /** ERC20 de participación (no el token base COP en el Core). */
+    leasingTokenAddress?: string;
+    /** Si es "0", makeLastLeasingPayment revertirá al repartir residual + incentivo. */
+    leasingTokenTotalSupply?: string;
   }> {
     const response = await axios.get(
       `${this.adminConfig.baseUrl}/api/Payment/leasing-state`,
@@ -198,6 +202,8 @@ export class BrickleAPI {
     lastPaymentMade?: boolean;
     residualValue?: string;
     finalPaymentAmount?: string;
+    leasingTokenAddress?: string;
+    leasingTokenTotalSupply?: string;
   }> {
     const response = await axios.get(
       `${this.adminConfig.baseUrl}/api/Payment/expected-amount/${agreementId}`,
